@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fishing Ticket</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IARA</div>
+    <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="login.html">Login</a></li>
+        <li><a href="ticket.html">Fishing Ticket</a></li>
+    </ul>
+</nav>
+
+<main>
+    <div class="ticket-container">
+        <h2>Buy Fishing Ticket</h2>
+
+        <label>Age Group</label>
+        <select id="age">
+            <option value="adult">Above 14</option>
+            <option value="child">Under 14</option>
+            <option value="pensioner">Pensioner</option>
+        </select>
+
+        <label>Ticket Type</label>
+        <select id="duration">
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="year">Year</option>
+        </select>
+
+        <label>
+            <input type="checkbox" id="disabled"> Disabled (TELK)
+        </label>
+
+        <button onclick="calculate()">Calculate Price</button>
+
+        <p id="price"></p>
+
+        <button onclick="buy()">Buy Ticket</button>
+
+        <div id="ticketResult"></div>
+    </div>
+</main>
+
+<script src="ticket.js"></script>
+
+</body>
+</html>

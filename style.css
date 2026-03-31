@@ -101,3 +101,37 @@ body {
 .login-btn:hover {
     background-color: #45a049;
 }
+.ticket-container {
+    max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.ticket-container label {
+    display: block;
+    margin-top: 10px;
+}
+
+.ticket-container select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+}
+
+.ticket-container button {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    background: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#ticketResult {
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px dashed #333;
+}
