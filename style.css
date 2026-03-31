@@ -42,15 +42,16 @@ body {
     color: #4CAF50;
 }
  
-/* Page Display Logic */
-.page {
-    display: none; /* Hide all pages by default */
+/* Main content layout */
+main {
     padding: 50px;
     text-align: center;
 }
- 
-.page.active {
-    display: block; /* Only show the active page */
+
+/* Home section */
+.home {
+    max-width: 800px;
+    margin: 0 auto;
 }
  
 /* Login Form Styling */
@@ -134,4 +135,12 @@ body {
     margin-top: 15px;
     padding: 10px;
     border: 1px dashed #333;
+}
+.login-container {
+    background: white;
+    max-width: 400px;
+    margin: 80px auto; /* centers vertically better */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
