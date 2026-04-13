@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vessel Registry - IARA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IARA</div>
+    <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="{{ url_for('dashboard') }}">My Tickets</a></li>
+        <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
+        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    </ul>
+</nav>
+
+<main style="flex-direction: column; align-items: center; padding-top: 40px;">
+
+    <div class="ticket-container" style="max-width: 600px; margin-bottom: 40px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+        <h2 style="text-align: center; color: white;">Register New Vessel</h2>
+        <form action="{{ url_for('register_vessel') }}" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+            <input type="text" name="name" placeholder="Vessel Name" required style="padding: 10px; border-radius: 5px;">
+            <input type="text" name="reg_num" placeholder="Registration Number" required style="padding: 10px; border-radius: 5px;">
+            <input type="number" step="0.1" name="tonnage" placeholder="Tonnage (GT)" required style="padding: 10px; border-radius: 5px;">
+            <input type="number" step="0.1" name="power" placeholder="Engine Power (kW)" required style="padding: 10px; border-radius: 5px;">
+            <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Register Ship</button>
+        </form>
+    </div>
+
+    <h2 style="color: white;">Official Bulgarian Vessel Registry</h2>
+    <table style="width: 90%; max-width: 1000px; color: white; border-collapse: collapse; margin-top: 20px; background: #1e293b;">
+        <thead style="background: #0b3c5d;">
+            <tr>
+                <th style="padding: 15px;">Name</th>
+                <th style="padding: 15px;">Reg Number</th>
+                <th style="padding: 15px;">Tonnage</th>
+                <th style="padding: 15px;">Power</th>
+                <th style="padding: 15px;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vessel in vessels %}
+            <tr style="border-bottom: 1px solid #334155; text-align: center;">
+                <td style="padding: 12px;">{{ vessel.name }}</td>
+                <td style="padding: 12px;">{{ vessel.registration_number }}</td>
+                <td style="padding: 12px;">{{ vessel.tonnage }} GT</td>
+                <td style="padding: 12px;">{{ vessel.engine_power }} kW</td>
+                <td style="padding: 12px;">{{ vessel.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</main>
+
+</body>
+</html>

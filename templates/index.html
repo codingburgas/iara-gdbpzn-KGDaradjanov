@@ -12,8 +12,14 @@
         <div class="logo">IARA</div>
         <ul class="nav-links">
             <li><a href="{{ url_for('index') }}">Home</a></li>
-            <li><a href="{{ url_for('login') }}">Login</a></li>
-            <li><a href="{{ url_for('ticket') }}">Fishing Ticket</a></li>
+            {% if session['user_id'] %}
+                <li><a href="{{ url_for('dashboard') }}">My Tickets</a></li>
+                <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                <li><a href="{{ url_for('ticket') }}">Fishing Ticket</a></li>
+            {% endif %}
         </ul>
     </nav>
 
