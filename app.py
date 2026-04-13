@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 import random
 
 app = Flask(__name__)
@@ -8,22 +9,34 @@ app = Flask(__name__)
 # Secret key is required to use 'sessions' securely
 app.secret_key = 'super_secret_key_change_this_later'
 
-# Database configuration
+# --- 1. CONFIGURATION AND DB SETUP MUST COME FIRST ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///iara_system.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# We create 'db' right here...
 db = SQLAlchemy(app)
 
 
-# --- DATABASE MODELS ---
+# --- 2. NOW WE CAN USE 'db' FOR OUR MODELS ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    # This links the user to their tickets
+    tickets = db.relationship('Ticket', backref='owner', lazy=True)
 
+class Ticket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    permit_id = db.Column(db.String(20), unique=True, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Create the database tables
 with app.app_context():
     db.create_all()
+
+# ... (The rest of your routes like @app.route('/') go down here) ...
 
 
 # --- PAGE ROUTES ---
@@ -112,11 +125,38 @@ def calculate_price():
     return jsonify({'price': price})
 
 
+@app.route('/dashboard')
+def dashboard():
+    # Check if user is logged in
+    if 'user_id' not in session:
+        flash('Please log in to view your dashboard.')
+        return redirect(url_for('login'))
+
+    # Fetch all tickets belonging to this user
+    user_tickets = Ticket.query.filter_by(user_id=session['user_id']).all()
+    return render_template('dashboard.html', tickets=user_tickets)
+
+
 @app.route('/buy', methods=['POST'])
 def buy_ticket():
+    # Make sure they are logged in before buying
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Must be logged in to buy a ticket.'}), 401
+
     data = request.get_json()
     price = data.get('price')
+
+    # Generate a random permit ID
     ticket_id = f"IARA-{random.randint(1000, 9999)}"
+
+    # Save it to the database!
+    new_ticket = Ticket(
+        user_id=session['user_id'],
+        permit_id=ticket_id,
+        price=float(price)
+    )
+    db.session.add(new_ticket)
+    db.session.commit()
 
     return jsonify({'ticket_id': ticket_id, 'price': price, 'status': 'success'})
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - IARA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 20px;
+        }
+        .saved-ticket {
+            padding: 20px;
+            background: linear-gradient(135deg, #0b3c5d, #328cc1);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IARA</div>
+    <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
+        <li><a href="{{ url_for('ticket') }}">Buy Ticket</a></li>
+        <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+    </ul>
+</nav>
+
+<main style="flex-direction: column; justify-content: flex-start; padding-top: 50px;">
+    <h2>Welcome, {{ session['username'] }}</h2>
+    <p>Here are your active fishing permits:</p>
+
+    <div class="dashboard-grid">
+        {% if tickets %}
+            {% for ticket in tickets %}
+            <div class="saved-ticket">
+                <div style="font-weight: bold; border-bottom: 2px dashed rgba(255,255,255,0.5); padding-bottom: 10px; margin-bottom: 10px;">
+                    🎟️ Official IARA Permit
+                </div>
+                <div><strong>Permit ID:</strong> {{ ticket.permit_id }}</div>
+                <div><strong>Paid:</strong> {{ ticket.price }} €</div>
+                <div><strong>Issued:</strong> {{ ticket.purchase_date.strftime('%Y-%m-%d') }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #7f8c8d; margin-top: 20px;">You haven't purchased any tickets yet.</p>
+        {% endif %}
+    </div>
+</main>
+
+</body>
+</html>
