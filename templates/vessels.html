@@ -11,7 +11,7 @@
     <div class="logo">IARA</div>
     <ul class="nav-links">
         <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('dashboard') }}">My Tickets</a></li>
+        <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
         <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
     </ul>
@@ -31,6 +31,11 @@
     </div>
 
     <h2 style="color: white;">Official Bulgarian Vessel Registry</h2>
+    <div class="vessel-filter" style="width: 90%; max-width: 1000px; margin-top: 12px;">
+        <label for="call-sign-filter" style="color: #d9e8f5; font-weight: 600; margin-bottom: 8px; display: block;">Filter by International Call Sign</label>
+        <input id="call-sign-filter" type="text" placeholder="Enter international call sign..." aria-label="Filter ships by international call sign" style="margin-bottom: 0; background: #f8fafc; color: #0f172a;">
+    </div>
+
     <table style="width: 90%; max-width: 1000px; color: white; border-collapse: collapse; margin-top: 20px; background: #1e293b;">
         <thead style="background: #0b3c5d;">
             <tr>
@@ -41,9 +46,9 @@
                 <th style="padding: 15px;">Status</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="vessel-registry-body">
             {% for vessel in vessels %}
-            <tr style="border-bottom: 1px solid #334155; text-align: center;">
+            <tr style="border-bottom: 1px solid #334155; text-align: center;" data-call-sign="{{ vessel.registration_number }}">
                 <td style="padding: 12px;">{{ vessel.name }}</td>
                 <td style="padding: 12px;">{{ vessel.registration_number }}</td>
                 <td style="padding: 12px;">{{ vessel.tonnage }} GT</td>
@@ -54,6 +59,20 @@
         </tbody>
     </table>
 </main>
+
+<script>
+    const callSignFilter = document.getElementById('call-sign-filter');
+    const vesselRows = document.querySelectorAll('#vessel-registry-body tr');
+
+    callSignFilter?.addEventListener('input', (event) => {
+        const query = event.target.value.trim().toLowerCase();
+
+        vesselRows.forEach((row) => {
+            const callSign = (row.dataset.callSign || '').toLowerCase();
+            row.style.display = callSign.includes(query) ? '' : 'none';
+        });
+    });
+</script>
 
 </body>
 </html>

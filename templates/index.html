@@ -12,8 +12,8 @@
         <div class="logo">IARA</div>
         <ul class="nav-links">
             <li><a href="{{ url_for('index') }}">Home</a></li>
-            {% if session['user_id'] %}
-                <li><a href="{{ url_for('dashboard') }}">My Tickets</a></li>
+            {% if session.get('user_id') %}
+                <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
                 <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
                 <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
             {% else %}
