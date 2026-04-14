@@ -43,6 +43,7 @@
     <ul class="nav-links">
         <li><a href="{{ url_for('index') }}">Home</a></li>
         {% if session.get('username') %}
+            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
             <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
         {% else %}
             <li><a href="{{ url_for('login') }}">Login</a></li>
@@ -86,7 +87,7 @@
     </div>
 </main>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ticket.js') }}"></script>
 
 </body>
 </html>
