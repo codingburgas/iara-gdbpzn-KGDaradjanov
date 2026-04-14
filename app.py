@@ -6,17 +6,16 @@ import random
 
 app = Flask(__name__)
 
-# Secret key is required to use 'sessions' securely
+# Secret key
 app.secret_key = 'super_secret_key_change_this_later'
 
-# --- 1. CONFIGURATION AND DB SETUP ---
+# DB config
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///iara_system.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-
-# --- 2. MODELS ---
+# ---------------- MODELS ----------------
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -42,12 +41,12 @@ class Vessel(db.Model):
     status = db.Column(db.String(20), default="Active")
 
 
-# Create the database tables
+# Create tables
 with app.app_context():
     db.create_all()
 
 
-# --- PAGE ROUTES ---
+# ---------------- ROUTES ----------------
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -58,7 +57,9 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
         user = User.query.filter_by(username=username).first()
+
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
@@ -66,6 +67,7 @@ def login():
         else:
             flash('Invalid username or password')
             return redirect(url_for('login'))
+
     return render_template('login.html')
 
 
@@ -78,16 +80,23 @@ def ticket():
 def register():
     username = request.form.get('username')
     password = request.form.get('password')
+
     existing_user = User.query.filter_by(username=username).first()
+
     if existing_user:
         flash('Username already exists!')
         return redirect(url_for('login'))
+
     hashed_password = generate_password_hash(password)
+
     new_user = User(username=username, password_hash=hashed_password)
+
     db.session.add(new_user)
     db.session.commit()
+
     session['user_id'] = new_user.id
     session['username'] = new_user.username
+
     return redirect(url_for('index'))
 
 
@@ -102,15 +111,17 @@ def dashboard():
     if 'user_id' not in session:
         flash('Please log in to view your dashboard.')
         return redirect(url_for('login'))
+
     user_tickets = Ticket.query.filter_by(user_id=session['user_id']).all()
     return render_template('dashboard.html', tickets=user_tickets)
 
 
-# --- VESSEL ROUTES ---
+# ---------------- VESSELS ----------------
 @app.route('/vessels')
 def vessels():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     all_vessels = Vessel.query.all()
     return render_template('vessels.html', vessels=all_vessels)
 
@@ -132,3 +143,13 @@ def register_vessel():
         tonnage=float(tonnage_val),
         engine_power=float(power_val)
     )
+
+    db.session.add(new_vessel)
+    db.session.commit()
+
+    return jsonify({'status': 'success'})
+
+
+# ---------------- START APP ----------------
+if __name__ == "__main__":
+    app.run(debug=True)
