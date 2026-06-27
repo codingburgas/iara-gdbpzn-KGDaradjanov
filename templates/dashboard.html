@@ -90,7 +90,12 @@
 </nav>
 
 <main style="flex-direction: column; justify-content: flex-start; padding-top: 50px;">
-    <h2>Welcome, {{ session['username'] }}</h2>
+    <h2>
+    Welcome, {{ session['username'] }}
+    <span style="font-size: 14px; background-color: #328cc1; color: white; padding: 4px 8px; border-radius: 6px; margin-left: 10px; vertical-align: middle; text-transform: uppercase; font-weight: bold;">
+        {{ session.get('role', 'Fisherman') }}
+    </span>
+</h2>
     <p>Here are your active fishing permits:</p>
 <main>
     <section class="dashboard-shell">

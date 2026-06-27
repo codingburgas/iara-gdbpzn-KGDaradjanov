@@ -18,6 +18,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), default='Fisherman') # НОВО: Добавена роля (Fisherman, Inspector, Admin)
     tickets = db.relationship('Ticket', backref='owner', lazy=True)
 
 
@@ -59,6 +60,7 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
+            session['role'] = user.role  # НОВО: Запазваме ролята в сесията
             return redirect(url_for('dashboard'))
 
         flash('Invalid username or password')
@@ -78,7 +80,8 @@ def register():
 
     new_user = User(
         username=username,
-        password_hash=generate_password_hash(password)
+        password_hash=generate_password_hash(password),
+        role='Fisherman'  # НОВО: Всеки нов потребител по подразбиране получава роля Fisherman
     )
 
     db.session.add(new_user)
@@ -86,6 +89,7 @@ def register():
 
     session['user_id'] = new_user.id
     session['username'] = new_user.username
+    session['role'] = new_user.role  # НОВО: Запазваме ролята в сесията при регистрация
 
     return redirect(url_for('dashboard'))
 
