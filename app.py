@@ -13,12 +13,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+
 # --- MODELS ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='Fisherman') # НОВО: Добавена роля (Fisherman, Inspector, Admin)
+    role = db.Column(db.String(20), default='Fisherman')
     tickets = db.relationship('Ticket', backref='owner', lazy=True)
 
 
@@ -40,8 +41,19 @@ class Vessel(db.Model):
     status = db.Column(db.String(20), default='Active')
 
 
+# НОВО: Модел за глобите
+class Fine(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    inspector_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    offender_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    date_issued = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 with app.app_context():
     db.create_all()
+
 
 # --- ROUTES ---
 @app.route('/')
@@ -60,7 +72,7 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
-            session['role'] = user.role  # НОВО: Запазваме ролята в сесията
+            session['role'] = user.role
             return redirect(url_for('dashboard'))
 
         flash('Invalid username or password')
@@ -81,7 +93,7 @@ def register():
     new_user = User(
         username=username,
         password_hash=generate_password_hash(password),
-        role='Fisherman'  # НОВО: Всеки нов потребител по подразбиране получава роля Fisherman
+        role='Fisherman'
     )
 
     db.session.add(new_user)
@@ -89,7 +101,7 @@ def register():
 
     session['user_id'] = new_user.id
     session['username'] = new_user.username
-    session['role'] = new_user.role  # НОВО: Запазваме ролята в сесията при регистрация
+    session['role'] = new_user.role
 
     return redirect(url_for('dashboard'))
 
@@ -187,7 +199,6 @@ def buy_ticket():
 # --- INSPECTOR ---
 @app.route('/inspector', methods=['GET', 'POST'])
 def inspector_dashboard():
-    # 1. SECURITY CHECK: Kick out anyone who isn't an Inspector
     if session.get('role') != 'Inspector':
         flash('Access Denied: Official IARA Inspectors only.')
         return redirect(url_for('dashboard'))
@@ -195,15 +206,40 @@ def inspector_dashboard():
     search_result = None
     searched = False
 
-    # 2. SEARCH LOGIC: If the inspector submitted a search
     if request.method == 'POST':
-        searched = True
-        search_query = request.form.get('permit_id', '').strip()
-
-        # Query the database for the exact permit ID
-        search_result = Ticket.query.filter_by(permit_id=search_query).first()
+        # Проверяваме дали това е формата за търсене (има permit_id)
+        if 'permit_id' in request.form:
+            searched = True
+            search_query = request.form.get('permit_id', '').strip()
+            search_result = Ticket.query.filter_by(permit_id=search_query).first()
 
     return render_template('inspector.html', ticket=search_result, searched=searched)
+
+
+# НОВО: Маршрут за издаване на глоби
+@app.route('/issue_fine', methods=['POST'])
+def issue_fine():
+    if session.get('role') != 'Inspector':
+        flash('Access Denied: Only Inspectors can issue fines.')
+        return redirect(url_for('dashboard'))
+
+    offender_name = request.form.get('offender_name', '').strip()
+    description = request.form.get('description', '').strip()
+    amount_val = request.form.get('amount', '0')
+
+    if offender_name and description:
+        new_fine = Fine(
+            inspector_id=session['user_id'],
+            offender_name=offender_name,
+            description=description,
+            amount=float(amount_val)
+        )
+        db.session.add(new_fine)
+        db.session.commit()
+        flash(f'Penalty of {amount_val} € successfully issued to {offender_name}!')
+
+    return redirect(url_for('inspector_dashboard'))
+
 
 # --- VESSELS ---
 @app.route('/vessels')
