@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspector Panel - IARA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .inspector-panel {
+            width: 100%;
+            max-width: 550px;
+            margin: 40px auto;
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            border-top: 5px solid #f1c40f;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            color: white;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 16px;
+            background-color: #f8fafc;
+        }
+        .search-box button {
+            background: #f1c40f;
+            color: #0f172a;
+            font-weight: bold;
+            width: auto;
+            padding: 12px 24px;
+            margin-top: 0;
+        }
+        .search-box button:hover {
+            background: #d4ac0d;
+            box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3);
+        }
+        .result-card {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .valid { border-left: 5px solid #2ecc71; }
+        .invalid { border-left: 5px solid #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">IARA</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
+            <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
+            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+        </ul>
+    </nav>
+
+    <main style="align-items: flex-start; padding-top: 50px;">
+        <div class="inspector-panel">
+            <h2 style="color: #f1c40f; text-transform: uppercase; letter-spacing: 1px;">Field Terminal</h2>
+            <p style="margin-bottom: 20px; color: #cbd5e1; text-align: center;">Enter Permit ID to verify validity.</p>
+
+            <form method="POST" action="{{ url_for('inspector_dashboard') }}" class="search-box">
+                <input type="text" name="permit_id" placeholder="e.g. IARA-123456" required>
+                <button type="submit">Verify</button>
+            </form>
+
+            {% if searched %}
+                <div class="result-card {% if ticket %}valid{% else %}invalid{% endif %}">
+                    {% if ticket %}
+                        <h3 style="color: #2ecc71; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                            ✅ VALID PERMIT
+                        </h3>
+                        <p style="margin-bottom: 8px;"><strong>Permit ID:</strong> <span style="color: #f8fafc;">{{ ticket.permit_id }}</span></p>
+                        <p style="margin-bottom: 8px;"><strong>Owner ID:</strong> <span style="color: #f8fafc;">{{ ticket.user_id }}</span></p>
+                        <p style="margin-bottom: 8px;"><strong>Price Paid:</strong> <span style="color: #f8fafc;">{{ '%.2f'|format(ticket.price) }} €</span></p>
+                        <p><strong>Issued On:</strong> <span style="color: #f8fafc;">{{ ticket.purchase_date.strftime('%Y-%m-%d') }}</span></p>
+                    {% else %}
+                        <h3 style="color: #e74c3c; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            ❌ INVALID PERMIT
+                        </h3>
+                        <p style="color: #cbd5e1;">No matching record found. This permit may be fake or incorrectly entered.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+</body>
+</html>

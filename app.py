@@ -184,6 +184,27 @@ def buy_ticket():
     })
 
 
+# --- INSPECTOR ---
+@app.route('/inspector', methods=['GET', 'POST'])
+def inspector_dashboard():
+    # 1. SECURITY CHECK: Kick out anyone who isn't an Inspector
+    if session.get('role') != 'Inspector':
+        flash('Access Denied: Official IARA Inspectors only.')
+        return redirect(url_for('dashboard'))
+
+    search_result = None
+    searched = False
+
+    # 2. SEARCH LOGIC: If the inspector submitted a search
+    if request.method == 'POST':
+        searched = True
+        search_query = request.form.get('permit_id', '').strip()
+
+        # Query the database for the exact permit ID
+        search_result = Ticket.query.filter_by(permit_id=search_query).first()
+
+    return render_template('inspector.html', ticket=search_result, searched=searched)
+
 # --- VESSELS ---
 @app.route('/vessels')
 def vessels():
