@@ -154,3 +154,116 @@ main {
     border-top: 5px solid #328cc1;
     margin: auto; /* Centers it if Flexbox fails */
 }
+/* --- СТИЛОВЕ ЗА БУТОНА --- */
+.theme-toggle {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* --- ТЪМНА ТЕМА (DARK MODE) --- */
+body.dark-mode {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+/* Смяна на цвета на навигацията в тъмен режим */
+body.dark-mode .navbar {
+    background-color: #020617;
+    border-bottom: 1px solid #334155;
+}
+
+/* Ако имаш бели карти или контейнери, можеш да ги затъмниш така: */
+body.dark-mode .ticket-container,
+body.dark-mode .trace-card,
+body.dark-mode .trace-container {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+/* Текст за h1, h2, h3, за да се чете добре на тъмно */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode p {
+    color: #f8fafc;
+}
+body.dark-mode .ticket-container,
+body.dark-mode .trace-card,
+body.dark-mode .trace-container,
+body.dark-mode .inspector-panel,
+body.dark-mode .admin-table,
+body.dark-mode .vessel-table {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+/* Заглавия и текст вътре в картите за таблото (Dashboard) и другите страници */
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode p,
+body.dark-mode label,
+body.dark-mode th,
+body.dark-mode td,
+body.dark-mode .dashboard-card {
+    color: #f8fafc !important;
+}
+
+/* Таблици (ако имаш такива в Dashboard или другаде) */
+body.dark-mode tr {
+    border-bottom: 1px solid #334155 !important;
+}
+
+/* Бялата кутия (Welcome to IARA) на начална страница / Index */
+body.dark-mode .home {
+    background: #1e293b !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-mode .home h1,
+body.dark-mode .home p {
+    color: white !important;
+}
+
+/* Полета за въвеждане в тъмен режим */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background-color: #334155 !important;
+    color: white !important;
+    border: 1px solid #475569 !important;
+}
+
+body.dark-mode input::placeholder {
+    color: #94a3b8 !important;
+}
+/* Поправка за контейнера за проследяване в тъмен режим */
+body.dark-mode .trace-container {
+    background-color: #1e293b !important;
+    border-top: 5px solid #2ecc71 !important;
+}
+
+body.dark-mode .trace-container h2,
+body.dark-mode .trace-container p {
+    color: #f8fafc !important;
+}
+
+body.dark-mode .trace-card {
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-mode .trace-card p,
+body.dark-mode .trace-card strong {
+    color: #cbd5e1 !important;
+}

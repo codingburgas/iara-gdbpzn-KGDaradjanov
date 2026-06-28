@@ -16,6 +16,7 @@
         <ul class="nav-links">
             <li><a href="{{ url_for('index') }}">Home</a></li>
             <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
+            <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
         </ul>
     </nav>
 
@@ -48,5 +49,7 @@
             {% endif %}
         </div>
     </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
