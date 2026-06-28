@@ -1,10 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traceability - IARA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .trace-container { max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 5px solid #2ecc71; }
+        .trace-card { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px; }
+    </style>
 </head>
 <body>
-$END$
+    <nav class="navbar">
+        <div class="logo">IARA</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="trace-container">
+            <h2 style="color: #0b3c5d;">Fish Traceability System</h2>
+            <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px;">Enter the LOT Number from the store package.</p>
+
+            <form method="POST" action="{{ url_for('trace') }}" style="display: flex; gap: 10px;">
+                <input type="text" name="lot_number" placeholder="e.g. LOT-1234567" required style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <button type="submit" style="width: auto; background: #2ecc71; color: white;">Trace Fish</button>
+            </form>
+
+            {% if searched %}
+                <div class="trace-card">
+                    {% if log and vessel %}
+                        <h3 style="color: #2ecc71; margin-bottom: 15px;">✅ Verified Origin</h3>
+                        <p><strong>Species:</strong> {{ log.fish_species }} ({{ log.quantity_kg }} kg)</p>
+                        <p><strong>Caught On:</strong> {{ log.catch_date }}</p>
+                        <p><strong>Fishing Gear:</strong> {{ log.gear_used }}</p>
+                        <hr style="margin: 15px 0; border-color: #cbd5e1;">
+                        <h4 style="color: #0b3c5d;">Vessel Information</h4>
+                        <p><strong>Ship Name:</strong> {{ vessel.name }}</p>
+                        <p><strong>Reg. Number:</strong> {{ vessel.registration_number }}</p>
+                    {% else %}
+                        <h3 style="color: #e74c3c;">❌ Unverified Product</h3>
+                        <p>No records found for this LOT number. This product may be illegal or unreported.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </main>
 </body>
 </html>

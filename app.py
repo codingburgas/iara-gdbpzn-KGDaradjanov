@@ -41,7 +41,6 @@ class Vessel(db.Model):
     status = db.Column(db.String(20), default='Active')
 
 
-# НОВО: Модел за глобите
 class Fine(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     inspector_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -49,6 +48,16 @@ class Fine(db.Model):
     description = db.Column(db.Text, nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date_issued = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class CatchLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), nullable=False)
+    catch_date = db.Column(db.String(20), nullable=False)
+    gear_used = db.Column(db.String(50), nullable=False)
+    fish_species = db.Column(db.String(50), nullable=False)
+    quantity_kg = db.Column(db.Float, nullable=False)
+    lot_number = db.Column(db.String(20), unique=True, nullable=False)
 
 
 with app.app_context():
@@ -207,7 +216,6 @@ def inspector_dashboard():
     searched = False
 
     if request.method == 'POST':
-        # Проверяваме дали това е формата за търсене (има permit_id)
         if 'permit_id' in request.form:
             searched = True
             search_query = request.form.get('permit_id', '').strip()
@@ -216,7 +224,6 @@ def inspector_dashboard():
     return render_template('inspector.html', ticket=search_result, searched=searched)
 
 
-# НОВО: Маршрут за издаване на глоби
 @app.route('/issue_fine', methods=['POST'])
 def issue_fine():
     if session.get('role') != 'Inspector':
@@ -239,6 +246,103 @@ def issue_fine():
         flash(f'Penalty of {amount_val} € successfully issued to {offender_name}!')
 
     return redirect(url_for('inspector_dashboard'))
+
+
+# --- ADMIN PANEL ---
+@app.route('/admin')
+def admin_dashboard():
+    # Проверка: Само админи имат достъп
+    if session.get('role') != 'Admin':
+        flash('Access Denied: Administrators only.')
+        return redirect(url_for('dashboard'))
+
+    # Взимаме всички потребители от базата
+    all_users = User.query.all()
+    return render_template('admin.html', users=all_users)
+
+
+@app.route('/change_role', methods=['POST'])
+def change_role():
+    if session.get('role') != 'Admin':
+        flash('Access Denied: Administrators only.')
+        return redirect(url_for('dashboard'))
+
+    user_id = request.form.get('user_id')
+    new_role = request.form.get('new_role')
+
+    user = User.query.get(user_id)
+    if user and new_role in ['Fisherman', 'Inspector', 'Admin']:
+        user.role = new_role
+        db.session.commit()
+
+        # НОВО: Ако админът е променил собствената си роля, обновяваме и текущата сесия веднага!
+        if user.id == session.get('user_id'):
+            session['role'] = new_role
+
+        flash(f'Role for user {user.username} successfully changed to {new_role}!')
+
+    return redirect(url_for('admin_dashboard'))
+
+
+# --- LOGBOOK (Електронен дневник) ---
+@app.route('/logbook', methods=['GET', 'POST'])
+def logbook():
+    if 'user_id' not in session:
+        flash('Please log in to access the logbook.')
+        return redirect(url_for('login'))
+
+    user_vessels = Vessel.query.filter_by(user_id=session['user_id']).all()
+
+    if request.method == 'POST':
+        vessel_id = request.form.get('vessel_id')
+        catch_date = request.form.get('catch_date')
+        gear = request.form.get('gear')
+        species = request.form.get('species')
+        qty = request.form.get('quantity')
+
+        if vessel_id and catch_date and gear and species and qty:
+            lot_num = f"LOT-{random.randint(1000000, 9999999)}"
+            while CatchLog.query.filter_by(lot_number=lot_num).first():
+                lot_num = f"LOT-{random.randint(1000000, 9999999)}"
+
+            new_log = CatchLog(
+                vessel_id=int(vessel_id),
+                catch_date=catch_date,
+                gear_used=gear,
+                fish_species=species,
+                quantity_kg=float(qty),
+                lot_number=lot_num
+            )
+            db.session.add(new_log)
+            db.session.commit()
+            flash(f'Catch successfully logged! Traceability Number: {lot_num}')
+            return redirect(url_for('logbook'))
+
+    vessel_ids = [v.id for v in user_vessels]
+    if vessel_ids:
+        logs = CatchLog.query.filter(CatchLog.vessel_id.in_(vessel_ids)).order_by(CatchLog.id.desc()).all()
+    else:
+        logs = []
+
+    return render_template('logbook.html', vessels=user_vessels, logs=logs)
+
+
+# --- TRACEABILITY (Проследяване) ---
+@app.route('/trace', methods=['GET', 'POST'])
+def trace():
+    search_result = None
+    vessel = None
+    searched = False
+
+    if request.method == 'POST':
+        searched = True
+        lot_query = request.form.get('lot_number', '').strip()
+        search_result = CatchLog.query.filter_by(lot_number=lot_query).first()
+
+        if search_result:
+            vessel = Vessel.query.get(search_result.vessel_id)
+
+    return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
 
 # --- VESSELS ---

@@ -16,15 +16,22 @@
             {% if session.get('user_id') %}
                 <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
                 <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
+                <li><a href="{{ url_for('logbook') }}">E-Logbook</a></li>
+                <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
 
                 {% if session.get('role') == 'Inspector' %}
                     <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
+                {% endif %}
+
+                {% if session.get('role') == 'Admin' %}
+                    <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
                 {% endif %}
 
                 <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
             {% else %}
                 <li><a href="{{ url_for('login') }}">Login</a></li>
                 <li><a href="{{ url_for('ticket') }}">Fishing Ticket</a></li>
+                <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
             {% endif %}
         </ul>
     </nav>
