@@ -39,6 +39,15 @@ class Vessel(db.Model):
     tonnage = db.Column(db.Float, nullable=False)
     engine_power = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='Active')
+    permit = db.relationship('CommercialPermit', backref='vessel', uselist=False, cascade="all, delete-orphan")
+
+
+# НОВО: CommercialPermit (Issue #15)
+class CommercialPermit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), unique=True, nullable=False)
+    permit_number = db.Column(db.String(20), unique=True, nullable=False)
+    issue_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Fine(db.Model):
@@ -275,7 +284,7 @@ def change_role():
         user.role = new_role
         db.session.commit()
 
-        # НОВО: Ако админът е променил собствената си роля, обновяваме и текущата сесия веднага!
+        # Ако админът е променил собствената си роля, обновяваме и текущата сесия веднага!
         if user.id == session.get('user_id'):
             session['role'] = new_role
 
@@ -345,7 +354,7 @@ def trace():
     return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
 
-# --- VESSELS ---
+# --- VESSELS & COMMERCIAL PERMITS ---
 @app.route('/vessels')
 def vessels():
     if 'user_id' not in session:
@@ -386,6 +395,33 @@ def register_vessel():
     db.session.commit()
 
     flash('Vessel registered successfully.')
+    return redirect(url_for('vessels'))
+
+
+# НОВО: Маршрут за издаване на комерсиален лиценз
+@app.route('/issue_commercial_permit/<int:vessel_id>', methods=['POST'])
+def issue_commercial_permit(vessel_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    vessel = Vessel.query.get_or_404(vessel_id)
+
+    # Защита: Само собственикът на кораба може да му извади лиценз
+    if vessel.user_id != session['user_id']:
+        flash('Access Denied: You do not own this vessel.')
+        return redirect(url_for('vessels'))
+
+    if vessel.permit:
+        flash('This vessel already has an active commercial permit.')
+        return redirect(url_for('vessels'))
+
+    permit_num = f"COM-{random.randint(10000, 99999)}"
+    new_permit = CommercialPermit(vessel_id=vessel.id, permit_number=permit_num)
+
+    db.session.add(new_permit)
+    db.session.commit()
+
+    flash(f'Commercial Permit {permit_num} successfully issued for {vessel.name}!')
     return redirect(url_for('vessels'))
 
 
