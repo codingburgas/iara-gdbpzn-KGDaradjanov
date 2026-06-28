@@ -13,6 +13,15 @@
         .role-admin { background: #e74c3c; color: white; }
         .role-inspector { background: #f1c40f; color: black; }
         .role-fisherman { background: #3498db; color: white; }
+
+        /* НОВО: Стилове за KPI Картите */
+        .kpi-container { display: flex; justify-content: space-between; width: 90%; max-width: 1000px; margin: 20px auto; gap: 15px; flex-wrap: wrap; }
+        .kpi-card { background: #1e293b; padding: 20px; border-radius: 8px; flex: 1; text-align: center; border-bottom: 4px solid #3498db; box-shadow: 0 4px 6px rgba(0,0,0,0.3); min-width: 200px; }
+        .kpi-card h3 { color: #cbd5e1; font-size: 14px; text-transform: uppercase; margin-bottom: 10px; }
+        .kpi-card p { color: white; font-size: 28px; font-weight: bold; margin: 0; }
+        .kpi-fines { border-bottom-color: #e74c3c; }
+        .kpi-catch { border-bottom-color: #2ecc71; }
+        .kpi-users { border-bottom-color: #f1c40f; }
     </style>
 </head>
 <body>
@@ -28,11 +37,30 @@
     </nav>
 
     <main style="flex-direction: column; align-items: center; padding-top: 40px;">
-        <h2 style="color: white; text-transform: uppercase;">User Management System</h2>
+        <h2 style="color: white; text-transform: uppercase; margin-bottom: 20px;">IARA Executive Dashboard</h2>
+
+        <div class="kpi-container">
+            <div class="kpi-card kpi-users">
+                <h3>Registered Users</h3>
+                <p>{{ total_users }}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Registered Vessels</h3>
+                <p>{{ total_vessels }}</p>
+            </div>
+            <div class="kpi-card kpi-fines">
+                <h3>Total Fines Issued</h3>
+                <p>{{ total_fines }} €</p>
+            </div>
+            <div class="kpi-card kpi-catch">
+                <h3>Total Legal Catch</h3>
+                <p>{{ total_catch }} kg</p>
+            </div>
+        </div>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <div style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <div style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; padding: 15px; border-radius: 6px; margin: 15px 0; max-width: 1000px; width: 90%;">
               {% for message in messages %}
                 <strong>{{ message }}</strong>
               {% endfor %}

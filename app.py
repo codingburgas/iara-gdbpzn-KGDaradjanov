@@ -42,7 +42,6 @@ class Vessel(db.Model):
     permit = db.relationship('CommercialPermit', backref='vessel', uselist=False, cascade="all, delete-orphan")
 
 
-# НОВО: CommercialPermit (Issue #15)
 class CommercialPermit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), unique=True, nullable=False)
@@ -84,18 +83,14 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-
         user = User.query.filter_by(username=username).first()
-
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
             return redirect(url_for('dashboard'))
-
         flash('Invalid username or password')
         return redirect(url_for('login'))
-
     return render_template('login.html')
 
 
@@ -103,24 +98,19 @@ def login():
 def register():
     username = request.form.get('username')
     password = request.form.get('password')
-
     if User.query.filter_by(username=username).first():
         flash('Username already exists!')
         return redirect(url_for('login'))
-
     new_user = User(
         username=username,
         password_hash=generate_password_hash(password),
         role='Fisherman'
     )
-
     db.session.add(new_user)
     db.session.commit()
-
     session['user_id'] = new_user.id
     session['username'] = new_user.username
     session['role'] = new_user.role
-
     return redirect(url_for('dashboard'))
 
 
@@ -135,7 +125,6 @@ def ticket():
     if 'user_id' not in session:
         flash('Please log in to purchase a fishing permit.')
         return redirect(url_for('login'))
-
     return render_template('ticket.html')
 
 
@@ -144,40 +133,22 @@ def dashboard():
     if 'user_id' not in session:
         flash('Please log in to view your dashboard.')
         return redirect(url_for('login'))
-
-    user_tickets = (
-        Ticket.query
-        .filter_by(user_id=session['user_id'])
-        .order_by(Ticket.purchase_date.desc())
-        .all()
-    )
-
+    user_tickets = Ticket.query.filter_by(user_id=session['user_id']).order_by(Ticket.purchase_date.desc()).all()
     return render_template('dashboard.html', tickets=user_tickets)
 
 
-# --- API ---
 @app.route('/calculate', methods=['POST'])
 def calculate_price():
     payload = request.get_json(silent=True) or {}
-
     age_group = payload.get('age', 'adult')
     duration = payload.get('duration', 'day')
     is_disabled = bool(payload.get('disabled', False))
-
     if is_disabled:
         return jsonify({'price': 0.0})
-
-    base_prices = {
-        'day': 5.0,
-        'week': 15.0,
-        'year': 40.0,
-    }
-
+    base_prices = {'day': 5.0, 'week': 15.0, 'year': 40.0}
     price = base_prices.get(duration, 5.0)
-
     if age_group in {'child', 'pensioner'}:
         price *= 0.5
-
     return jsonify({'price': round(price, 2)})
 
 
@@ -185,51 +156,37 @@ def calculate_price():
 def buy_ticket():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
-
     payload = request.get_json(silent=True) or {}
-
     try:
         price = float(payload.get('price', 0))
     except (TypeError, ValueError):
         return jsonify({'status': 'error', 'message': 'Invalid price'}), 400
-
     permit_id = f"IARA-{random.randint(100000, 999999)}"
     while Ticket.query.filter_by(permit_id=permit_id).first():
         permit_id = f"IARA-{random.randint(100000, 999999)}"
-
     new_ticket = Ticket(
         user_id=session['user_id'],
         permit_id=permit_id,
         price=round(price, 2),
         purchase_date=datetime.now(timezone.utc)
     )
-
     db.session.add(new_ticket)
     db.session.commit()
-
-    return jsonify({
-        'status': 'ok',
-        'ticket_id': permit_id,
-        'price': round(price, 2)
-    })
+    return jsonify({'status': 'ok', 'ticket_id': permit_id, 'price': round(price, 2)})
 
 
-# --- INSPECTOR ---
 @app.route('/inspector', methods=['GET', 'POST'])
 def inspector_dashboard():
     if session.get('role') != 'Inspector':
         flash('Access Denied: Official IARA Inspectors only.')
         return redirect(url_for('dashboard'))
-
     search_result = None
     searched = False
-
     if request.method == 'POST':
         if 'permit_id' in request.form:
             searched = True
             search_query = request.form.get('permit_id', '').strip()
             search_result = Ticket.query.filter_by(permit_id=search_query).first()
-
     return render_template('inspector.html', ticket=search_result, searched=searched)
 
 
@@ -238,11 +195,9 @@ def issue_fine():
     if session.get('role') != 'Inspector':
         flash('Access Denied: Only Inspectors can issue fines.')
         return redirect(url_for('dashboard'))
-
     offender_name = request.form.get('offender_name', '').strip()
     description = request.form.get('description', '').strip()
     amount_val = request.form.get('amount', '0')
-
     if offender_name and description:
         new_fine = Fine(
             inspector_id=session['user_id'],
@@ -253,21 +208,32 @@ def issue_fine():
         db.session.add(new_fine)
         db.session.commit()
         flash(f'Penalty of {amount_val} € successfully issued to {offender_name}!')
-
     return redirect(url_for('inspector_dashboard'))
 
 
-# --- ADMIN PANEL ---
+# НОВО: ADMIN PANEL с добавени KPIs
 @app.route('/admin')
 def admin_dashboard():
-    # Проверка: Само админи имат достъп
     if session.get('role') != 'Admin':
         flash('Access Denied: Administrators only.')
         return redirect(url_for('dashboard'))
 
-    # Взимаме всички потребители от базата
     all_users = User.query.all()
-    return render_template('admin.html', users=all_users)
+
+    # 1. Изчисляваме статистиките директно от базата данни
+    total_users = User.query.count()
+    total_vessels = Vessel.query.count()
+
+    # Използваме db.func.sum за събиране на всички глоби и уловена риба
+    total_fines = db.session.query(db.func.sum(Fine.amount)).scalar() or 0.0
+    total_catch = db.session.query(db.func.sum(CatchLog.quantity_kg)).scalar() or 0.0
+
+    return render_template('admin.html',
+                           users=all_users,
+                           total_users=total_users,
+                           total_vessels=total_vessels,
+                           total_fines=round(total_fines, 2),
+                           total_catch=round(total_catch, 2))
 
 
 @app.route('/change_role', methods=['POST'])
@@ -275,31 +241,24 @@ def change_role():
     if session.get('role') != 'Admin':
         flash('Access Denied: Administrators only.')
         return redirect(url_for('dashboard'))
-
     user_id = request.form.get('user_id')
     new_role = request.form.get('new_role')
-
     user = User.query.get(user_id)
     if user and new_role in ['Fisherman', 'Inspector', 'Admin']:
         user.role = new_role
         db.session.commit()
-
-        # Ако админът е променил собствената си роля, обновяваме и текущата сесия веднага!
         if user.id == session.get('user_id'):
             session['role'] = new_role
-
         flash(f'Role for user {user.username} successfully changed to {new_role}!')
-
     return redirect(url_for('admin_dashboard'))
 
 
-# --- LOGBOOK (Електронен дневник) ---
+# НОВО: LOGBOOK със защита срещу бракониери
 @app.route('/logbook', methods=['GET', 'POST'])
 def logbook():
     if 'user_id' not in session:
         flash('Please log in to access the logbook.')
         return redirect(url_for('login'))
-
     user_vessels = Vessel.query.filter_by(user_id=session['user_id']).all()
 
     if request.method == 'POST':
@@ -310,6 +269,22 @@ def logbook():
         qty = request.form.get('quantity')
 
         if vessel_id and catch_date and gear and species and qty:
+            qty_float = float(qty)
+
+            # ЗАЩИТА 1: Забранени видове
+            protected_species = ['есетра', 'делфин', 'морска котка', 'тюлен', 'sturgeon', 'dolphin']
+            if species.lower() in protected_species:
+                flash(
+                    f'🚨 ALARM: Fishing for {species.capitalize()} is strictly prohibited! The attempt has been blocked.',
+                    'error')
+                return redirect(url_for('logbook'))
+
+            # ЗАЩИТА 2: Нереалистичен лимит
+            if qty_float > 5000:
+                flash('🚨 ERROR: Quantity exceeds the daily limit of 5000 kg. Contact IARA for special verification.',
+                      'error')
+                return redirect(url_for('logbook'))
+
             lot_num = f"LOT-{random.randint(1000000, 9999999)}"
             while CatchLog.query.filter_by(lot_number=lot_num).first():
                 lot_num = f"LOT-{random.randint(1000000, 9999999)}"
@@ -319,7 +294,7 @@ def logbook():
                 catch_date=catch_date,
                 gear_used=gear,
                 fish_species=species,
-                quantity_kg=float(qty),
+                quantity_kg=qty_float,
                 lot_number=lot_num
             )
             db.session.add(new_log)
@@ -332,35 +307,28 @@ def logbook():
         logs = CatchLog.query.filter(CatchLog.vessel_id.in_(vessel_ids)).order_by(CatchLog.id.desc()).all()
     else:
         logs = []
-
     return render_template('logbook.html', vessels=user_vessels, logs=logs)
 
 
-# --- TRACEABILITY (Проследяване) ---
 @app.route('/trace', methods=['GET', 'POST'])
 def trace():
     search_result = None
     vessel = None
     searched = False
-
     if request.method == 'POST':
         searched = True
         lot_query = request.form.get('lot_number', '').strip()
         search_result = CatchLog.query.filter_by(lot_number=lot_query).first()
-
         if search_result:
             vessel = Vessel.query.get(search_result.vessel_id)
-
     return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
 
-# --- VESSELS & COMMERCIAL PERMITS ---
 @app.route('/vessels')
 def vessels():
     if 'user_id' not in session:
         flash('Please log in to manage vessels.')
         return redirect(url_for('login'))
-
     all_vessels = Vessel.query.order_by(Vessel.id.desc()).all()
     return render_template('vessels.html', vessels=all_vessels)
 
@@ -369,20 +337,16 @@ def vessels():
 def register_vessel():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
-
     name = request.form.get('name', '').strip()
     reg_num = request.form.get('reg_num', '').strip()
     tonnage_val = request.form.get('tonnage', '0')
     power_val = request.form.get('power', '0')
-
     if not name or not reg_num:
         flash('Vessel name and registration number are required.')
         return redirect(url_for('vessels'))
-
     if Vessel.query.filter_by(registration_number=reg_num).first():
         flash('A vessel with this registration number already exists.')
         return redirect(url_for('vessels'))
-
     new_vessel = Vessel(
         user_id=session['user_id'],
         name=name,
@@ -390,37 +354,27 @@ def register_vessel():
         tonnage=float(tonnage_val),
         engine_power=float(power_val)
     )
-
     db.session.add(new_vessel)
     db.session.commit()
-
     flash('Vessel registered successfully.')
     return redirect(url_for('vessels'))
 
 
-# НОВО: Маршрут за издаване на комерсиален лиценз
 @app.route('/issue_commercial_permit/<int:vessel_id>', methods=['POST'])
 def issue_commercial_permit(vessel_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
     vessel = Vessel.query.get_or_404(vessel_id)
-
-    # Защита: Само собственикът на кораба може да му извади лиценз
     if vessel.user_id != session['user_id']:
         flash('Access Denied: You do not own this vessel.')
         return redirect(url_for('vessels'))
-
     if vessel.permit:
         flash('This vessel already has an active commercial permit.')
         return redirect(url_for('vessels'))
-
     permit_num = f"COM-{random.randint(10000, 99999)}"
     new_permit = CommercialPermit(vessel_id=vessel.id, permit_number=permit_num)
-
     db.session.add(new_permit)
     db.session.commit()
-
     flash(f'Commercial Permit {permit_num} successfully issued for {vessel.name}!')
     return redirect(url_for('vessels'))
 
