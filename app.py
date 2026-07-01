@@ -9,7 +9,20 @@ from flask import Response
 from reportlab.pdfgen import canvas
 from flask import make_response
 from io import BytesIO
+import requests
 
+def get_weather():
+    api_key = "710fe10c3f6d5c8342fb935b440f14ce"
+    city = "Burgas"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    try:
+        response = requests.get(url).json()
+        return {
+            "temp": round(response["main"]["temp"]),
+            "desc": response["weather"][0]["description"]
+        }
+    except:
+        return None
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_later'
 
@@ -311,7 +324,9 @@ def logbook():
                 gear_used=gear,
                 fish_species=species,
                 quantity_kg=qty_float,
-                lot_number=lot_num
+                lot_number=lot_num,
+                lat=request.form.get('lat'),
+                lon=request.form.get('lon')
             )
             db.session.add(new_log)
             db.session.commit()
@@ -347,6 +362,8 @@ def vessels():
         return redirect(url_for('login'))
 
     search_query = request.args.get('search', '').strip()
+    # Извикваме времето
+    weather = get_weather()
 
     if search_query:
         all_vessels = Vessel.query.filter(
@@ -356,7 +373,8 @@ def vessels():
     else:
         all_vessels = Vessel.query.order_by(Vessel.id.desc()).all()
 
-    return render_template('vessels.html', vessels=all_vessels, search_query=search_query)
+    # Добавяме weather=weather тук
+    return render_template('vessels.html', vessels=all_vessels, search_query=search_query, weather=weather)
 
 
 @app.route('/export_vessels')
