@@ -44,6 +44,10 @@
             <div>
                 <h2>Hello, {{ session['username'] }}</h2>
                 <p style="margin: 0;">Track your active permits and keep IDs ready for inspection.</p>
+                <!-- Бутон за PDF Report -->
+                <a href="{{ url_for('export_pdf') }}" style="display: inline-block; margin-top: 15px; background: #e74c3c; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+                    📥 Download PDF Report
+                </a>
             </div>
             <div class="permit-count">
                 <strong>{{ tickets|length }}</strong>
@@ -73,7 +77,7 @@
             {% endif %}
         </div>
 
-        <!-- Контейнер за графиката (ще се покаже само ако има улов) -->
+        <!-- Контейнер за графиката -->
         {% if catch_data %}
         <div class="chart-container" style="margin-top: 40px; width: 100%; max-width: 800px;">
             <h2 style="color: #328cc1; text-align: center;">Lifetime Catch Statistics (kg)</h2>
@@ -83,29 +87,20 @@
     </section>
 </main>
 
-<!-- 1. Зареждаме скрипта за тъмната тема -->
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
-<!-- 2. Рисуваме графиката -->
 {% if catch_data %}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     try {
-        // Взимаме данните от Python (в твоя случай 'Sprat': 15.0 и 'Mackerel': 25.0)
         const rawData = {{ catch_data | tojson | safe }};
-
-        // Ако има данни, рисуваме графиката
         if (Object.keys(rawData).length > 0) {
             const labels = Object.keys(rawData);
             const data = Object.values(rawData);
-
             const canvas = document.getElementById('catchChart');
             if (canvas) {
                 const ctx = canvas.getContext('2d');
-
-                // Настройваме цветовете на текста според темата
                 Chart.defaults.color = '#94a3b8';
-
                 new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -113,41 +108,21 @@ document.addEventListener("DOMContentLoaded", function() {
                         datasets: [{
                             label: 'Total Catch (kg)',
                             data: data,
-                            backgroundColor: [
-                                'rgba(46, 204, 113, 0.7)',
-                                'rgba(52, 152, 219, 0.7)',
-                                'rgba(241, 196, 15, 0.7)'
-                            ],
-                            borderColor: [
-                                'rgba(46, 204, 113, 1)',
-                                'rgba(52, 152, 219, 1)',
-                                'rgba(241, 196, 15, 1)'
-                            ],
+                            backgroundColor: ['rgba(46, 204, 113, 0.7)', 'rgba(52, 152, 219, 0.7)', 'rgba(241, 196, 15, 0.7)'],
+                            borderColor: ['rgba(46, 204, 113, 1)', 'rgba(52, 152, 219, 1)', 'rgba(241, 196, 15, 1)'],
                             borderWidth: 1,
                             borderRadius: 4
                         }]
                     },
                     options: {
                         responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(148, 163, 184, 0.1)' }
-                            },
-                            x: {
-                                grid: { display: false }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false }
-                        }
+                        scales: { y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.1)' } }, x: { grid: { display: false } } },
+                        plugins: { legend: { display: false } }
                     }
                 });
             }
         }
-    } catch (error) {
-        console.error("Chart generation error: ", error);
-    }
+    } catch (error) { console.error("Chart generation error: ", error); }
 });
 </script>
 {% endif %}

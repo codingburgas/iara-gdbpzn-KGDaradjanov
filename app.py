@@ -6,6 +6,9 @@ import random
 import csv
 from io import StringIO
 from flask import Response
+from reportlab.pdfgen import canvas
+from flask import make_response
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_later'
@@ -69,6 +72,8 @@ class CatchLog(db.Model):
     fish_species = db.Column(db.String(50), nullable=False)
     quantity_kg = db.Column(db.Float, nullable=False)
     lot_number = db.Column(db.String(20), unique=True, nullable=False)
+    lat = db.Column(db.Float)
+    lon = db.Column(db.Float)
 
 
 with app.app_context():
@@ -427,6 +432,36 @@ def issue_commercial_permit(vessel_id):
     flash(f'Commercial Permit {permit_num} successfully issued for {vessel.name}!')
     return redirect(url_for('vessels'))
 
+
+@app.route('/export_pdf')
+def export_pdf():
+    if 'user_id' not in session: return redirect(url_for('login'))
+
+    # 1. Създаваме буфер в паметта
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer)
+
+    # 2. Пишем в PDF-а
+    p.drawString(100, 800, "IARA OFFICIAL CATCH REPORT")
+    y = 750
+    logs = CatchLog.query.all()
+    for log in logs:
+        p.drawString(100, y, f"Species: {log.fish_species} | Qty: {log.quantity_kg}kg | Date: {log.catch_date}")
+        y -= 20
+        if y < 50:  # Страницата свърши
+            p.showPage()
+            y = 800
+
+    p.showPage()
+    p.save()
+
+    # 3. Връщаме съдържанието на буфера като PDF файл
+    pdf_out = buffer.getvalue()
+    buffer.close()
+
+    response = Response(pdf_out, mimetype='application/pdf')
+    response.headers['Content-Disposition'] = 'attachment; filename=catch_report.pdf'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True)

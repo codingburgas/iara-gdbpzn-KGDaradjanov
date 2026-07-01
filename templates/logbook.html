@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Logbook - IARA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
     <nav class="navbar">
@@ -54,39 +55,33 @@
                 <input type="text" name="gear" placeholder="Fishing Gear (e.g. Nets, Lines)" required style="padding: 10px; border-radius: 5px;">
                 <input type="text" name="species" placeholder="Fish Species (e.g. Mackerel, Sprat)" required style="padding: 10px; border-radius: 5px;">
                 <input type="number" step="0.1" name="quantity" placeholder="Quantity (kg)" required style="padding: 10px; border-radius: 5px;">
-                <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Submit Log</button>
+
+                <p style="color: white; margin: 10px 0 5px 0;">Select Catch Location:</p>
+                <div id="map" style="height: 250px; border-radius: 5px; border: 2px solid #328cc1;"></div>
+                <input type="hidden" name="lat" id="lat">
+                <input type="hidden" name="lon" id="lon">
+
+                <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;">Submit Log</button>
             </form>
         </div>
 
         <h2 style="color: white; margin-bottom: 20px;">Catch History</h2>
         <table class="vessel-table logbook-table" style="width: 90%; max-width: 1000px; margin: 0 auto; color: white; border-collapse: collapse; background: #1e293b;">
-            <thead>
-                <tr>
-                    <th style="background: #0b3c5d; padding: 15px; text-align: left;">Date</th>
-                    <th style="background: #0b3c5d; padding: 15px; text-align: left;">Vessel ID</th>
-                    <th style="background: #0b3c5d; padding: 15px; text-align: left;">Species</th>
-                    <th style="background: #0b3c5d; padding: 15px; text-align: left;">Quantity (kg)</th>
-                    <th style="background: #0b3c5d; padding: 15px; text-align: left;">Traceability LOT</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in logs %}
-                <tr>
-                    <td style="padding: 15px; border-bottom: 1px solid #334155;">{{ log.catch_date }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #334155;">{{ log.vessel_id }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #334155; font-weight: bold;">{{ log.fish_species }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #334155;">{{ log.quantity_kg }}</td>
-                    <td style="padding: 15px; border-bottom: 1px solid #334155; color: #2ecc71; font-weight: bold;">{{ log.lot_number }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" style="padding: 15px; border-bottom: 1px solid #334155; text-align: center; color: #94a3b8;">No catch logged yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            </table>
     </main>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([42.49, 27.47], 8); // Бургас център
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        var marker;
+        map.on('click', function(e) {
+            if (marker) map.removeLayer(marker);
+            marker = L.marker(e.latlng).addTo(map);
+            document.getElementById('lat').value = e.latlng.lat;
+            document.getElementById('lon').value = e.latlng.lng;
+        });
+    </script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
