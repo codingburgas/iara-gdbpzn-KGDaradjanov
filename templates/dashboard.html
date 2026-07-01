@@ -5,83 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - IARA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .dashboard-shell {
-            width: min(1080px, 94vw);
-            margin: 40px auto;
-            color: #e2e8f0;
-        }
-
-        .dashboard-summary {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-            flex-wrap: wrap;
-            margin-bottom: 26px;
-            padding: 18px 22px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.65);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-        }
-
-        .dashboard-summary h2 {
-            margin: 0 0 6px;
-            color: #f8fafc;
-        }
-
-        .permit-count {
-            min-width: 180px;
-            text-align: center;
-            background: linear-gradient(135deg, #0b3c5d, #328cc1);
-            color: #f8fafc;
-            border-radius: 10px;
-            padding: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-        }
-
-        .permit-count strong {
-            display: block;
-            font-size: 30px;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1000px;
-            margin-top: 20px;
-        }
-
-        .saved-ticket {
-            padding: 20px;
-            background: linear-gradient(135deg, #0b3c5d, #328cc1);
-            color: white;
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            text-align: left;
-        }
-
-        .empty-state {
-            border-radius: 10px;
-            padding: 18px;
-            border: 1px dashed rgba(148, 163, 184, 0.45);
-            color: #94a3b8;
-            margin-top: 15px;
-        }
-
-        .empty-state a {
-            color: #7dd3fc;
-            font-weight: 600;
-        }
-
-        /* Корекции за Dark Mode в таблото */
-        body.dark-mode .dashboard-summary { background: #1e293b !important; border-color: #475569 !important; }
-        body.dark-mode .dashboard-summary h2,
-        body.dark-mode .dashboard-summary p { color: #f8fafc !important; }
-        body.dark-mode .saved-ticket { background: #0f172a !important; border: 1px solid #334155 !important; }
-    </style>
+    <!-- Зареждане на Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -89,8 +14,18 @@
     <div class="logo">IARA</div>
     <ul class="nav-links">
         <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-        <li><a href="{{ url_for('ticket') }}">Buy Ticket</a></li>
+        <li><a href="{{ url_for('dashboard') }}" style="color: #7dd3fc;">My Dashboard</a></li>
+        <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
+        <li><a href="{{ url_for('logbook') }}">E-Logbook</a></li>
+        <li><a href="{{ url_for('trace') }}">Trace Catch</a></li>
+
+        {% if session.get('role') == 'Inspector' %}
+            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
+        {% endif %}
+        {% if session.get('role') == 'Admin' %}
+            <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
+        {% endif %}
+
         <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
         <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
     </ul>
@@ -137,9 +72,85 @@
                 </div>
             {% endif %}
         </div>
+
+        <!-- Контейнер за графиката (ще се покаже само ако има улов) -->
+        {% if catch_data %}
+        <div class="chart-container" style="margin-top: 40px; width: 100%; max-width: 800px;">
+            <h2 style="color: #328cc1; text-align: center;">Lifetime Catch Statistics (kg)</h2>
+            <canvas id="catchChart"></canvas>
+        </div>
+        {% endif %}
     </section>
 </main>
 
+<!-- 1. Зареждаме скрипта за тъмната тема -->
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+<!-- 2. Рисуваме графиката -->
+{% if catch_data %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    try {
+        // Взимаме данните от Python (в твоя случай 'Sprat': 15.0 и 'Mackerel': 25.0)
+        const rawData = {{ catch_data | tojson | safe }};
+
+        // Ако има данни, рисуваме графиката
+        if (Object.keys(rawData).length > 0) {
+            const labels = Object.keys(rawData);
+            const data = Object.values(rawData);
+
+            const canvas = document.getElementById('catchChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+
+                // Настройваме цветовете на текста според темата
+                Chart.defaults.color = '#94a3b8';
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Catch (kg)',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(46, 204, 113, 0.7)',
+                                'rgba(52, 152, 219, 0.7)',
+                                'rgba(241, 196, 15, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(46, 204, 113, 1)',
+                                'rgba(52, 152, 219, 1)',
+                                'rgba(241, 196, 15, 1)'
+                            ],
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Chart generation error: ", error);
+    }
+});
+</script>
+{% endif %}
+
 </body>
 </html>

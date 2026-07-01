@@ -267,3 +267,180 @@ body.dark-mode .trace-card p,
 body.dark-mode .trace-card strong {
     color: #cbd5e1 !important;
 }
+/* =========================================
+   СТИЛОВЕ ЗА АДМИН ПАНЕЛ (ADMIN PANEL)
+   ========================================= */
+.admin-table {
+    width: 90%;
+    max-width: 1000px;
+    margin: 30px auto;
+    color: white;
+    border-collapse: collapse;
+    background: #1e293b;
+}
+
+.admin-table th {
+    background: #0b3c5d;
+    padding: 15px;
+    text-align: left;
+}
+
+.admin-table td {
+    padding: 15px;
+    border-bottom: 1px solid #334155;
+}
+
+.role-badge {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.role-admin { background: #e74c3c; color: white; }
+.role-inspector { background: #f1c40f; color: black; }
+.role-fisherman { background: #3498db; color: white; }
+
+.kpi-container {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 1000px;
+    margin: 20px auto;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.kpi-card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 8px;
+    flex: 1;
+    text-align: center;
+    border-bottom: 4px solid #3498db;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    min-width: 200px;
+}
+
+.kpi-card h3 {
+    color: #cbd5e1;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.kpi-card p {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.kpi-fines { border-bottom-color: #e74c3c; }
+.kpi-catch { border-bottom-color: #2ecc71; }
+.kpi-users { border-bottom-color: #f1c40f; }
+
+/* Корекции за Dark Mode в Админ панела */
+body.dark-mode .admin-table { background: #0f172a !important; border: 1px solid #334155 !important; }
+body.dark-mode .admin-table th { background: #1e293b !important; color: #f8fafc !important; }
+body.dark-mode .admin-table td { border-bottom-color: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .kpi-card { background: #0f172a !important; border: 1px solid #334155 !important; }
+body.dark-mode .kpi-card p,
+body.dark-mode .kpi-card h3,
+body.dark-mode h2 { color: #f8fafc !important; }
+
+
+/* =========================================
+   СТИЛОВЕ ЗА ТАБЛОТО (DASHBOARD) И ГРАФИКАТА
+   ========================================= */
+.dashboard-shell {
+    width: min(1080px, 94vw);
+    margin: 40px auto;
+    color: #e2e8f0;
+}
+
+.dashboard-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.dashboard-summary h2 {
+    margin: 0 0 6px;
+    color: #f8fafc;
+}
+
+.permit-count {
+    min-width: 180px;
+    text-align: center;
+    background: linear-gradient(135deg, #0b3c5d, #328cc1);
+    color: #f8fafc;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+.permit-count strong {
+    display: block;
+    font-size: 30px;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 20px;
+}
+
+.saved-ticket {
+    padding: 20px;
+    background: linear-gradient(135deg, #0b3c5d, #328cc1);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    text-align: left;
+}
+
+.empty-state {
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px dashed rgba(148, 163, 184, 0.45);
+    color: #94a3b8;
+    margin-top: 15px;
+}
+
+.empty-state a {
+    color: #7dd3fc;
+    font-weight: 600;
+}
+
+.chart-container {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+/* Корекции за Dark Mode в таблото */
+body.dark-mode .dashboard-summary { background: #1e293b !important; border-color: #475569 !important; }
+body.dark-mode .dashboard-summary h2,
+body.dark-mode .dashboard-summary p { color: #f8fafc !important; }
+body.dark-mode .saved-ticket { background: #0f172a !important; border: 1px solid #334155 !important; }
+body.dark-mode .chart-container { background: #1e293b !important; border-color: #475569 !important; }
+/* =========================================
+   СТИЛОВЕ ЗА E-LOGBOOK (ТЪМЕН РЕЖИМ)
+   ========================================= */
+body.dark-mode .logbook-form { background: #1e293b !important; border: 1px solid #334155 !important; }
+body.dark-mode .logbook-table { background: #0f172a !important; border: 1px solid #334155 !important; }
+body.dark-mode .logbook-table th { background: #1e293b !important; color: #f8fafc !important; }
+body.dark-mode .logbook-table td { border-bottom-color: #334155 !important; color: #e2e8f0 !important; }

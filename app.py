@@ -131,13 +131,30 @@ def ticket():
     return render_template('ticket.html')
 
 
+# НОВО: Обновен маршрут за Dashboard с извличане на данните за графиката
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         flash('Please log in to view your dashboard.')
         return redirect(url_for('login'))
-    user_tickets = Ticket.query.filter_by(user_id=session['user_id']).order_by(Ticket.purchase_date.desc()).all()
-    return render_template('dashboard.html', tickets=user_tickets)
+
+    user_id = session['user_id']
+    user_tickets = Ticket.query.filter_by(user_id=user_id).order_by(Ticket.purchase_date.desc()).all()
+
+    # Взимаме всички кораби на текущия потребител
+    user_vessels = Vessel.query.filter_by(user_id=user_id).all()
+    vessel_ids = [v.id for v in user_vessels]
+
+    # Подготвяме речник, в който ще сумираме рибата по вид
+    catch_data = {}
+    if vessel_ids:
+        # Взимаме всички записи за тези кораби
+        logs = CatchLog.query.filter(CatchLog.vessel_id.in_(vessel_ids)).all()
+        for log in logs:
+            species = log.fish_species.capitalize()
+            catch_data[species] = catch_data.get(species, 0) + log.quantity_kg
+
+    return render_template('dashboard.html', tickets=user_tickets, catch_data=catch_data)
 
 
 @app.route('/calculate', methods=['POST'])
@@ -318,7 +335,6 @@ def trace():
     return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
 
-# --- VESSELS & COMMERCIAL PERMITS ---
 @app.route('/vessels', methods=['GET'])
 def vessels():
     if 'user_id' not in session:
@@ -348,7 +364,8 @@ def export_vessels():
     def generate():
         data = StringIO()
         writer = csv.writer(data)
-        writer.writerow(['ID', 'Vessel Name', 'Registration Number', 'Tonnage (t)', 'Engine Power (kW)', 'Commercial Permit'])
+        writer.writerow(
+            ['ID', 'Vessel Name', 'Registration Number', 'Tonnage (t)', 'Engine Power (kW)', 'Commercial Permit'])
         yield data.getvalue()
         data.seek(0)
         data.truncate(0)
