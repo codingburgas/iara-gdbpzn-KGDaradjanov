@@ -1,127 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vessel Registry - IARA</title>
+    <title>Регистър кораби - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .vessel-table { width: 90%; max-width: 1000px; margin: 30px auto; color: white; border-collapse: collapse; background: #1e293b; }
-        .vessel-table th { background: #0b3c5d; padding: 15px; text-align: left; }
-        .vessel-table td { padding: 15px; border-bottom: 1px solid #334155; }
-        .permit-btn { background: #f1c40f; color: #0f172a; padding: 8px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .weather-widget { width: 90%; max-width: 1000px; background: white; color: #2c3e50; padding: 15px 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #cbd5e1; border-left: 5px solid #328cc1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .action-bar { width: 90%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin: 30px auto 15px auto; flex-wrap: wrap; gap: 15px; }
+        .search-container { display: flex; gap: 15px; flex-wrap: wrap; }
+        .search-form { display: flex; gap: 8px; }
+        .search-form input { margin: 0; padding: 10px 15px; width: 250px; }
+        .btn-action { margin: 0; padding: 10px 15px; font-size: 14px; width: auto; border-radius: 6px; text-decoration: none; font-weight: bold; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .btn-blue { background: #3498db; } .btn-blue:hover { background: #2980b9; }
+        .btn-red { background: #e74c3c; } .btn-red:hover { background: #c0392b; }
+        .btn-green { background: #2ecc71; } .btn-green:hover { background: #27ae60; }
+        .permit-btn { background: #f1c40f; color: #0f172a; padding: 8px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s;}
         .permit-btn:hover { background: #d4ac0d; }
+        body.dark-mode .weather-widget { background: #1e293b; color: #f8fafc; border-color: #334155; }
     </style>
 </head>
 <body>
 
     <nav class="navbar">
-        <div class="logo">IARA</div>
+        <div class="logo">ИАРА</div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
-            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-            <li><a href="{{ url_for('vessels') }}" style="color: #7dd3fc;">Vessel Registry</a></li>
-            <li><a href="{{ url_for('logbook') }}">E-Logbook</a></li>
-            <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
-
-            {% if session.get('role') == 'Inspector' %}
-                <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
-            {% endif %}
-            {% if session.get('role') == 'Admin' %}
-                <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
-            {% endif %}
-
-            <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
-            <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
+            <li><a href="{{ url_for('index') }}">Начало</a></li>
+            <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+            <li><a href="{{ url_for('vessels') }}" style="color: #7dd3fc;">Регистър кораби</a></li>
+            <li><a href="{{ url_for('logbook') }}">Е-Дневник</a></li>
+            <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Проследи улов</a></li>
+            {% if session.get('role') == 'Inspector' %}<li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Инспекторски панел</a></li>{% endif %}
+            {% if session.get('role') == 'Admin' %}<li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Админ панел</a></li>{% endif %}
+            <li><a href="{{ url_for('logout') }}">Изход</a></li>
+            <li><button id="theme-toggle" class="theme-toggle">🌙</button></li>
         </ul>
     </nav>
 
     <main style="flex-direction: column; align-items: center; padding-top: 40px;">
+
         {% if weather %}
-        <div class="weather-widget" style="width: 90%; max-width: 1000px; background: #1e293b; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #328cc1;">
-            <h3>Weather in Burgas</h3>
-            <p style="margin: 5px 0;">Temperature: <strong>{{ weather.temp }}°C</strong></p>
-            <p style="margin: 5px 0;">Conditions: {{ weather.desc | capitalize }}</p>
+        <div class="weather-widget">
+            <h3 style="color: #0b3c5d;">Времето в Бургас</h3>
+            <p style="margin: 5px 0;">Температура: <strong>{{ weather.temp }}°C</strong> | Условия: {{ weather.desc | capitalize }}</p>
         </div>
         {% endif %}
-        <div class="ticket-container" style="max-width: 600px; margin-bottom: 40px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
-            <h2 style="text-align: center; color: white;">Register New Vessel</h2>
 
+        <div class="ticket-container" style="max-width: 800px;">
+            <h2>Регистрирай нов кораб</h2>
             {% with messages = get_flashed_messages() %}
               {% if messages %}
                 <div style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;">
-                  {% for message in messages %}
-                    <strong>{{ message }}</strong>
-                  {% endfor %}
+                  {% for message in messages %}<strong>{{ message }}</strong>{% endfor %}
                 </div>
               {% endif %}
             {% endwith %}
 
             <form action="{{ url_for('register_vessel') }}" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
-                <input type="text" name="name" placeholder="Vessel Name (e.g. Black Sea King)" required style="padding: 10px; border-radius: 5px;">
-                <input type="text" name="reg_num" placeholder="Registration Number (e.g. BS-1234)" required style="padding: 10px; border-radius: 5px;">
-                <input type="number" step="0.1" name="tonnage" placeholder="Gross Tonnage (t)" required style="padding: 10px; border-radius: 5px;">
-                <input type="number" step="0.1" name="power" placeholder="Engine Power (kW)" required style="padding: 10px; border-radius: 5px;">
-                <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Register Vessel</button>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" name="name" placeholder="Име на кораба" required style="flex: 1; min-width: 200px;">
+                    <input type="text" name="reg_num" placeholder="Регистрационен номер" required style="flex: 1; min-width: 200px;">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" name="captain_name" placeholder="Име на капитана" required style="flex: 1; min-width: 200px;">
+                    <input type="text" name="international_number" placeholder="Международен номер / Позивна" style="flex: 1; min-width: 200px;">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="number" step="0.1" name="tonnage" placeholder="Бруто тонаж (т)" required style="flex: 1; min-width: 150px;">
+                    <input type="number" step="0.1" name="power" placeholder="Двигател (kW)" required style="flex: 1; min-width: 150px;">
+                    <input type="text" name="fuel_type" placeholder="Вид гориво" required style="flex: 1; min-width: 150px;">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="number" step="0.1" name="length" placeholder="Дължина (м)" required style="flex: 1;">
+                    <input type="number" step="0.1" name="width" placeholder="Ширина (м)" required style="flex: 1;">
+                    <input type="number" step="0.1" name="draft" placeholder="Газене (м)" required style="flex: 1;">
+                </div>
+                <button type="submit">Добави кораб към регистъра</button>
             </form>
         </div>
 
-        <div style="width: 90%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin: 30px auto 10px auto; flex-wrap: wrap; gap: 15px;">
-            <h2 style="color: white; margin: 0;">Registered Fleet</h2>
-
-            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <form method="GET" action="{{ url_for('vessels') }}" style="display: flex; gap: 5px; align-items: center;">
-                    <input type="text" name="search" value="{{ search_query }}" placeholder="Search by name or ID..." style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                    <button type="submit" style="background: #3498db; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer;">🔍 Search</button>
-                    {% if search_query %}
-                        <a href="{{ url_for('vessels') }}" style="background: #e74c3c; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">✖ Clear</a>
-                    {% endif %}
+        <div class="action-bar">
+            <h2>Регистриран флот</h2>
+            <div class="search-container">
+                <form method="GET" action="{{ url_for('vessels') }}" class="search-form">
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="Търсене по име/номер...">
+                    <button type="submit" class="btn-action btn-blue">🔍 Търси</button>
+                    {% if search_query %}<a href="{{ url_for('vessels') }}" class="btn-action btn-red">✖ Изчисти</a>{% endif %}
                 </form>
-
-                <a href="{{ url_for('export_vessels') }}" style="background: #2ecc71; color: white; padding: 8px 12px; text-decoration: none; font-weight: bold; border-radius: 4px; display: flex; align-items: center;">📥 Export CSV</a>
+                <a href="{{ url_for('export_vessels') }}" class="btn-action btn-green">📥 CSV</a>
             </div>
         </div>
 
         <table class="vessel-table">
             <thead>
                 <tr>
-                    <th>Ship Name</th>
-                    <th>Reg Number</th>
-                    <th>Tonnage</th>
-                    <th>Engine</th>
-                    <th>Commercial Permit</th>
+                    <th>Кораб / Капитан</th>
+                    <th>Рег. № / Позивна</th>
+                    <th>Технически данни</th>
+                    <th>Разрешително</th>
                 </tr>
             </thead>
             <tbody>
                 {% for vessel in vessels %}
                 <tr>
-                    <td style="font-weight: bold;">{{ vessel.name }}</td>
-                    <td>{{ vessel.registration_number }}</td>
-                    <td>{{ vessel.tonnage }} t</td>
-                    <td>{{ vessel.engine_power }} kW</td>
+                    <td>
+                        <strong style="font-size: 16px;">{{ vessel.name }}</strong><br>
+                        <span style="font-size: 13px; color: #7f8c8d;">Капитан: {{ vessel.captain_name }}</span>
+                    </td>
+                    <td>
+                        <strong>{{ vessel.registration_number }}</strong><br>
+                        <span style="font-size: 13px; color: #7f8c8d;">IMO: {{ vessel.international_number or 'N/A' }}</span>
+                    </td>
+                    <td style="font-size: 13px;">
+                        Тонаж: {{ vessel.tonnage }}т | Двиг: {{ vessel.engine_power }}kW<br>
+                        Размери: {{ vessel.length }}x{{ vessel.width }}m | Газене: {{ vessel.draft }}m
+                    </td>
                     <td>
                         {% if vessel.permit %}
-                            <span style="color: #2ecc71; font-weight: bold;">✅ {{ vessel.permit.permit_number }}</span>
+                            {% if vessel.permit.is_revoked %}
+                                <span class="text-red">❌ ОТНЕТО</span>
+                            {% else %}
+                                <span class="text-green">✅ {{ vessel.permit.permit_number }}</span><br>
+                                <span style="font-size: 12px; color: #7f8c8d;">Валидно до: {{ vessel.permit.expiry_date.strftime('%Y-%m-%d') }}</span>
+                                {% if session.get('role') == 'Inspector' %}
+                                    <form action="{{ url_for('revoke_permit', permit_id=vessel.permit.id) }}" method="POST" style="margin-top: 5px;">
+                                        <button type="submit" class="btn-action btn-red" style="padding: 4px 8px; font-size: 12px;" onclick="return confirm('Сигурни ли сте, че искате да отнемете разрешителното?');">Отнеми при нарушение</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
                         {% else %}
                             {% if vessel.user_id == session.get('user_id') %}
                                 <form action="{{ url_for('issue_commercial_permit', vessel_id=vessel.id) }}" method="POST">
-                                    <button type="submit" class="permit-btn">Apply for License</button>
+                                    <button type="submit" class="permit-btn">Кандидатствай</button>
                                 </form>
                             {% else %}
-                                <span style="color: #e74c3c;">No Permit</span>
+                                <span class="text-red">Няма разрешително</span>
                             {% endif %}
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">No vessels found matching your search.</td>
-                </tr>
+                <tr><td colspan="4" style="text-align: center; padding: 20px;">Няма намерени кораби.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </main>
-
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

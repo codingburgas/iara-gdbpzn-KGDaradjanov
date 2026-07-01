@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buy Ticket - IARA</title>
+    <title>Купи билет - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        /* Special styling just to make the final result look like a real ticket */
         #ticketResult {
-            display: none; /* Hidden until purchased */
+            display: none;
             margin-top: 30px;
             padding: 20px;
             background: linear-gradient(135deg, #0b3c5d, #328cc1);
@@ -39,49 +38,49 @@
 <body>
 
 <nav class="navbar">
-    <div class="logo">IARA</div>
+    <div class="logo">ИАРА</div>
     <ul class="nav-links">
-        <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="{{ url_for('index') }}">Начало</a></li>
         {% if session.get('username') %}
-            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+            <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+            <li><a href="{{ url_for('logout') }}">Изход ({{ session['username'] }})</a></li>
         {% else %}
-            <li><a href="{{ url_for('login') }}">Login</a></li>
+            <li><a href="{{ url_for('login') }}">Вход</a></li>
         {% endif %}
-        <li><a href="{{ url_for('ticket') }}">Fishing Ticket</a></li>
+        <li><a href="{{ url_for('ticket') }}">Риболовен билет</a></li>
     </ul>
 </nav>
 
 <main>
     <div class="ticket-container">
-        <h2>Buy Fishing Ticket</h2>
+        <h2>Купи риболовен билет</h2>
 
         <div class="input-group">
-            <label for="age">Age Group</label>
+            <label for="age">Възрастова група</label>
             <select id="age" onchange="calculate()">
-                <option value="adult">Above 14 (Standard)</option>
-                <option value="child">Under 14 (50% Discount)</option>
-                <option value="pensioner">Pensioner (50% Discount)</option>
+                <option value="adult">Над 14 г. (Стандартен)</option>
+                <option value="child">Под 14 г. (50% отстъпка)</option>
+                <option value="pensioner">Пенсионер (50% отстъпка)</option>
             </select>
         </div>
 
         <div class="input-group">
-            <label for="duration">Ticket Duration</label>
+            <label for="duration">Продължителност на билета</label>
             <select id="duration" onchange="calculate()">
-                <option value="day">1 Day</option>
-                <option value="week">1 Week</option>
-                <option value="year">1 Year</option>
+                <option value="day">1 Ден</option>
+                <option value="week">1 Седмица</option>
+                <option value="year">1 Година</option>
             </select>
         </div>
 
         <div class="input-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
             <input type="checkbox" id="disabled" onchange="calculate()" style="width: auto; margin: 0;">
-            <label for="disabled" style="margin: 0;">Disabled (TELK) - Free</label>
+            <label for="disabled" style="margin: 0;">Инвалид (ТЕЛК) - Безплатно</label>
         </div>
 
-        <h3 id="price" style="text-align: center; color: #328cc1; margin-bottom: 20px;">Price: 5.0 €</h3>
+        <h3 id="price" style="text-align: center; color: #328cc1; margin-bottom: 20px;">Цена: 5.0 €</h3>
 
-        <button onclick="buy()">Purchase Ticket</button>
+        <button onclick="buy()">Закупи билет</button>
 
         <div id="ticketResult"></div>
     </div>

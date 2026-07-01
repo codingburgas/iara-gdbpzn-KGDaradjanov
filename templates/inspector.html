@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspector Panel - IARA</title>
+    <title>Инспекторски панел - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         .inspector-panel {
@@ -55,47 +55,47 @@
 <body>
 
     <nav class="navbar">
-        <div class="logo">IARA</div>
+        <div class="logo">ИАРА</div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
-            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-            <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
-            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+            <li><a href="{{ url_for('index') }}">Начало</a></li>
+            <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+            <li><a href="{{ url_for('vessels') }}">Регистър кораби</a></li>
+            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Инспекторски панел</a></li>
+            <li><a href="{{ url_for('logout') }}">Изход ({{ session['username'] }})</a></li>
         </ul>
     </nav>
 
     <main style="align-items: flex-start; padding-top: 50px;">
         <div class="inspector-panel">
-            <h2 style="color: #f1c40f; text-transform: uppercase; letter-spacing: 1px;">Field Terminal</h2>
-            <p style="margin-bottom: 20px; color: #cbd5e1; text-align: center;">Enter Permit ID to verify validity.</p>
+            <h2 style="color: #f1c40f; text-transform: uppercase; letter-spacing: 1px;">Полеви терминал</h2>
+            <p style="margin-bottom: 20px; color: #cbd5e1; text-align: center;">Въведете номер на разрешително за проверка.</p>
 
             <form method="POST" action="{{ url_for('inspector_dashboard') }}" class="search-box">
-                <input type="text" name="permit_id" placeholder="e.g. IARA-123456" required>
-                <button type="submit">Verify</button>
+                <input type="text" name="permit_id" placeholder="напр. IARA-123456" required>
+                <button type="submit">Провери</button>
             </form>
 
             {% if searched %}
                 <div class="result-card {% if ticket %}valid{% else %}invalid{% endif %}">
                     {% if ticket %}
                         <h3 style="color: #2ecc71; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                            ✅ VALID PERMIT
+                            ✅ ВАЛИДНО РАЗРЕШИТЕЛНО
                         </h3>
-                        <p style="margin-bottom: 8px;"><strong>Permit ID:</strong> <span style="color: #f8fafc;">{{ ticket.permit_id }}</span></p>
-                        <p style="margin-bottom: 8px;"><strong>Owner ID:</strong> <span style="color: #f8fafc;">{{ ticket.user_id }}</span></p>
-                        <p style="margin-bottom: 8px;"><strong>Price Paid:</strong> <span style="color: #f8fafc;">{{ '%.2f'|format(ticket.price) }} €</span></p>
-                        <p><strong>Issued On:</strong> <span style="color: #f8fafc;">{{ ticket.purchase_date.strftime('%Y-%m-%d') }}</span></p>
+                        <p style="margin-bottom: 8px;"><strong>Номер:</strong> <span style="color: #f8fafc;">{{ ticket.permit_id }}</span></p>
+                        <p style="margin-bottom: 8px;"><strong>Собственик ID:</strong> <span style="color: #f8fafc;">{{ ticket.user_id }}</span></p>
+                        <p style="margin-bottom: 8px;"><strong>Платено:</strong> <span style="color: #f8fafc;">{{ '%.2f'|format(ticket.price) }} €</span></p>
+                        <p><strong>Издадено на:</strong> <span style="color: #f8fafc;">{{ ticket.purchase_date.strftime('%Y-%m-%d') }}</span></p>
                     {% else %}
                         <h3 style="color: #e74c3c; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            ❌ INVALID PERMIT
+                            ❌ НЕВАЛИДНО РАЗРЕШИТЕЛНО
                         </h3>
-                        <p style="color: #cbd5e1;">No matching record found. This permit may be fake or incorrectly entered.</p>
+                        <p style="color: #cbd5e1;">Не е намерен запис. Това разрешително може да е фалшиво или грешно въведено.</p>
                     {% endif %}
                 </div>
             {% endif %}
 
             <hr style="border-color: #334155; margin: 30px 0;">
-            <h3 style="color: #e74c3c; margin-bottom: 15px; text-transform: uppercase;">Issue Violation Penalty</h3>
+            <h3 style="color: #e74c3c; margin-bottom: 15px; text-transform: uppercase;">Издаване на акт за нарушение</h3>
 
             {% with messages = get_flashed_messages() %}
               {% if messages %}
@@ -108,17 +108,17 @@
             {% endwith %}
 
             <form method="POST" action="{{ url_for('issue_fine') }}" style="display: flex; flex-direction: column; gap: 12px;">
-                <input type="text" name="offender_name" placeholder="Offender's Full Name" required
+                <input type="text" name="offender_name" placeholder="Пълни имена на нарушителя" required
                        style="padding: 10px; border-radius: 6px; border: none; background: #f8fafc;">
 
-                <input type="text" name="description" placeholder="Description of Violation (e.g. Fishing in restricted area)" required
+                <input type="text" name="description" placeholder="Описание (напр. Риболов в забранена зона)" required
                        style="padding: 10px; border-radius: 6px; border: none; background: #f8fafc;">
 
-                <input type="number" step="0.1" name="amount" placeholder="Fine Amount (€)" required
+                <input type="number" step="0.1" name="amount" placeholder="Размер на глобата (€)" required
                        style="padding: 10px; border-radius: 6px; border: none; background: #f8fafc;">
 
                 <button type="submit" style="background: #e74c3c; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">
-                    Issue Penalty
+                    Издай глоба
                 </button>
             </form>
         </div>

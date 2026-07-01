@@ -1,43 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - IARA</title>
+    <title>Админ панел - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
     <nav class="navbar">
-        <div class="logo">IARA</div>
+        <div class="logo">ИАРА</div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
-            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-            <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout</a></li>
-            <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
+            <li><a href="{{ url_for('index') }}">Начало</a></li>
+            <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+            <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Админ панел</a></li>
+            <li><a href="{{ url_for('logout') }}">Изход</a></li>
+            <li><button id="theme-toggle" class="theme-toggle" title="Превключи тъмен режим">🌙</button></li>
         </ul>
     </nav>
 
     <main style="flex-direction: column; align-items: center; padding-top: 40px;">
-        <h2 style="color: white; text-transform: uppercase; margin-bottom: 20px;">IARA Executive Dashboard</h2>
+        <h2 style="color: white; text-transform: uppercase; margin-bottom: 20px;">Изпълнително табло ИАРА</h2>
 
         <div class="kpi-container">
             <div class="kpi-card kpi-users">
-                <h3>Registered Users</h3>
+                <h3>Регистрирани потребители</h3>
                 <p>{{ total_users }}</p>
             </div>
             <div class="kpi-card">
-                <h3>Registered Vessels</h3>
+                <h3>Регистрирани кораби</h3>
                 <p>{{ total_vessels }}</p>
             </div>
             <div class="kpi-card kpi-fines">
-                <h3>Total Fines Issued</h3>
+                <h3>Общо наложени глоби</h3>
                 <p>{{ total_fines }} €</p>
             </div>
             <div class="kpi-card kpi-catch">
-                <h3>Total Legal Catch</h3>
-                <p>{{ total_catch }} kg</p>
+                <h3>Общо законен улов</h3>
+                <p>{{ total_catch }} кг</p>
             </div>
         </div>
 
@@ -55,9 +55,9 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Username</th>
-                    <th>Current Role</th>
-                    <th>Change Role</th>
+                    <th>Потребител</th>
+                    <th>Текуща роля</th>
+                    <th>Промяна на роля</th>
                 </tr>
             </thead>
             <tbody>
@@ -70,18 +70,20 @@
                             {% if user.role == 'Admin' %}role-admin
                             {% elif user.role == 'Inspector' %}role-inspector
                             {% else %}role-fisherman{% endif %}">
-                            {{ user.role }}
+                            {% if user.role == 'Admin' %}Админ
+                            {% elif user.role == 'Inspector' %}Инспектор
+                            {% else %}Рибар{% endif %}
                         </span>
                     </td>
                     <td>
                         <form action="{{ url_for('change_role') }}" method="POST" style="display: flex; gap: 10px;">
                             <input type="hidden" name="user_id" value="{{ user.id }}">
                             <select name="new_role" style="padding: 8px; border-radius: 4px;">
-                                <option value="Fisherman" {% if user.role == 'Fisherman' %}selected{% endif %}>Fisherman</option>
-                                <option value="Inspector" {% if user.role == 'Inspector' %}selected{% endif %}>Inspector</option>
-                                <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                <option value="Fisherman" {% if user.role == 'Fisherman' %}selected{% endif %}>Рибар</option>
+                                <option value="Inspector" {% if user.role == 'Inspector' %}selected{% endif %}>Инспектор</option>
+                                <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Админ</option>
                             </select>
-                            <button type="submit" style="background: #2ecc71; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Update</button>
+                            <button type="submit" style="background: #2ecc71; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Обнови</button>
                         </form>
                     </td>
                 </tr>

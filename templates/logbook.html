@@ -1,31 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Logbook - IARA</title>
+    <title>Е-Дневник - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo">IARA</div>
+        <div class="logo">ИАРА</div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
-            <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-            <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
-            <li><a href="{{ url_for('logbook') }}" style="color: #7dd3fc;">E-Logbook</a></li>
-            <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
-
-            {% if session.get('role') == 'Inspector' %}
-                <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
-            {% endif %}
-            {% if session.get('role') == 'Admin' %}
-                <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
-            {% endif %}
-
-            <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
-            <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
+            <li><a href="{{ url_for('index') }}">Начало</a></li>
+            <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+            <li><a href="{{ url_for('vessels') }}">Регистър кораби</a></li>
+            <li><a href="{{ url_for('logbook') }}" style="color: #7dd3fc;">Е-Дневник</a></li>
+            <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Проследи улов</a></li>
+            {% if session.get('role') == 'Inspector' %}<li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Инспекторски панел</a></li>{% endif %}
+            {% if session.get('role') == 'Admin' %}<li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Админ панел</a></li>{% endif %}
+            <li><a href="{{ url_for('logout') }}">Изход</a></li>
+            <li><button id="theme-toggle" class="theme-toggle">🌙</button></li>
         </ul>
     </nav>
 
@@ -42,37 +36,73 @@
           {% endif %}
         {% endwith %}
 
-        <div class="ticket-container logbook-form" style="max-width: 600px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 40px; width: 100%;">
-            <h2 style="text-align: center; color: white;">Log Catch</h2>
+        <div class="ticket-container logbook-form" style="max-width: 600px;">
+            <h2 style="text-align: center; color: #0b3c5d;">Деклариране на улов</h2>
             <form action="{{ url_for('logbook') }}" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
-                <select name="vessel_id" required style="padding: 10px; border-radius: 5px;">
-                    <option value="" disabled selected>Select Vessel</option>
-                    {% for vessel in vessels %}
-                        <option value="{{ vessel.id }}">{{ vessel.name }} ({{ vessel.registration_number }})</option>
-                    {% endfor %}
-                </select>
-                <input type="date" name="catch_date" required style="padding: 10px; border-radius: 5px;">
-                <input type="text" name="gear" placeholder="Fishing Gear (e.g. Nets, Lines)" required style="padding: 10px; border-radius: 5px;">
-                <input type="text" name="species" placeholder="Fish Species (e.g. Mackerel, Sprat)" required style="padding: 10px; border-radius: 5px;">
-                <input type="number" step="0.1" name="quantity" placeholder="Quantity (kg)" required style="padding: 10px; border-radius: 5px;">
 
-                <p style="color: white; margin: 10px 0 5px 0;">Select Catch Location:</p>
+                <select name="vessel_id" style="padding: 10px; border-radius: 5px;">
+                    <option value="" selected>🎣 Любителски улов (Изисква валиден билет)</option>
+                    <optgroup label="Вашите търговски кораби">
+                        {% for vessel in vessels %}
+                            <option value="{{ vessel.id }}">🚢 {{ vessel.name }} ({{ vessel.registration_number }})</option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+
+                <input type="date" name="catch_date" required style="padding: 10px; border-radius: 5px;">
+                <input type="text" name="gear" placeholder="Риболовен уред (напр. Въдица, Мрежи)" required style="padding: 10px; border-radius: 5px;">
+                <input type="text" name="species" placeholder="Вид риба (напр. Скумрия, Цаца)" required style="padding: 10px; border-radius: 5px;">
+                <input type="number" step="0.1" name="quantity" placeholder="Количество (кг)" required style="padding: 10px; border-radius: 5px;">
+
+                <p style="margin: 10px 0 5px 0;">Изберете локация на улова:</p>
                 <div id="map" style="height: 250px; border-radius: 5px; border: 2px solid #328cc1;"></div>
                 <input type="hidden" name="lat" id="lat">
                 <input type="hidden" name="lon" id="lon">
 
-                <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;">Submit Log</button>
+                <button type="submit" style="background: #328cc1; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;">Запиши улова</button>
             </form>
         </div>
 
-        <h2 style="color: white; margin-bottom: 20px;">Catch History</h2>
-        <table class="vessel-table logbook-table" style="width: 90%; max-width: 1000px; margin: 0 auto; color: white; border-collapse: collapse; background: #1e293b;">
-            </table>
+        <h2 style="margin-bottom: 20px; color: #0b3c5d;">История на вашия улов</h2>
+        <table class="logbook-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Кораб / Любител</th>
+                    <th>Уред</th>
+                    <th>Вид риба</th>
+                    <th>Количество</th>
+                    <th>Партиден № (LOT)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.catch_date }}</td>
+                    <td>
+                        {% if log.vessel %}
+                            <strong>{{ log.vessel.name }}</strong>
+                        {% else %}
+                            <span class="text-green">🎣 Любителски</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.gear_used }}</td>
+                    <td>{{ log.fish_species }}</td>
+                    <td>{{ log.quantity_kg }} кг</td>
+                    <td><code style="background: rgba(0,0,0,0.1); padding: 3px 6px; border-radius: 4px;">{{ log.lot_number }}</code></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 20px;">Нямате деклариран улов до момента.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var map = L.map('map').setView([42.49, 27.47], 8); // Бургас център
+        var map = L.map('map').setView([42.49, 27.47], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         var marker;
         map.on('click', function(e) {

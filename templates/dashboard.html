@@ -1,86 +1,85 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard - IARA</title>
+    <title>Моето табло - ИАРА</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Зареждане на Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">IARA</div>
+    <div class="logo">ИАРА</div>
     <ul class="nav-links">
-        <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('dashboard') }}" style="color: #7dd3fc;">My Dashboard</a></li>
-        <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
-        <li><a href="{{ url_for('logbook') }}">E-Logbook</a></li>
-        <li><a href="{{ url_for('trace') }}">Trace Catch</a></li>
+        <li><a href="{{ url_for('index') }}">Начало</a></li>
+        <li><a href="{{ url_for('dashboard') }}" style="color: #7dd3fc;">Моето табло</a></li>
+        <li><a href="{{ url_for('vessels') }}">Регистър кораби</a></li>
+        <li><a href="{{ url_for('logbook') }}">Е-Дневник</a></li>
+        <li><a href="{{ url_for('trace') }}">Проследи улов</a></li>
 
         {% if session.get('role') == 'Inspector' %}
-            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
+            <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Инспекторски панел</a></li>
         {% endif %}
         {% if session.get('role') == 'Admin' %}
-            <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
+            <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Админ панел</a></li>
         {% endif %}
 
-        <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
-        <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
+        <li><a href="{{ url_for('logout') }}">Изход ({{ session['username'] }})</a></li>
+        <li><button id="theme-toggle" class="theme-toggle" title="Превключи тъмен режим">🌙</button></li>
     </ul>
 </nav>
 
 <main style="flex-direction: column; justify-content: flex-start; padding-top: 50px;">
     <h2>
-        Welcome, {{ session['username'] }}
+        Добре дошли, {{ session['username'] }}
         <span style="font-size: 14px; background-color: #328cc1; color: white; padding: 4px 8px; border-radius: 6px; margin-left: 10px; vertical-align: middle; text-transform: uppercase; font-weight: bold;">
-            {{ session.get('role', 'Fisherman') }}
+            {% if session.get('role') == 'Admin' %}Админ
+            {% elif session.get('role') == 'Inspector' %}Инспектор
+            {% else %}Рибар{% endif %}
         </span>
     </h2>
 
     <section class="dashboard-shell">
         <div class="dashboard-summary">
             <div>
-                <h2>Hello, {{ session['username'] }}</h2>
-                <p style="margin: 0;">Track your active permits and keep IDs ready for inspection.</p>
-                <!-- Бутон за PDF Report -->
+                <h2>Здравейте, {{ session['username'] }}</h2>
+                <p style="margin: 0;">Проследявайте активните си разрешителни и дръжте документите готови за проверка.</p>
                 <a href="{{ url_for('export_pdf') }}" style="display: inline-block; margin-top: 15px; background: #e74c3c; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-                    📥 Download PDF Report
+                    📥 Изтегли PDF Отчет
                 </a>
             </div>
             <div class="permit-count">
                 <strong>{{ tickets|length }}</strong>
-                Active Permit{% if tickets|length != 1 %}s{% endif %}
+                Активно разрешителн{% if tickets|length != 1 %}и{% else %}о{% endif %}
             </div>
         </div>
 
-        <p>Here are your active fishing permits:</p>
+        <p>Ето вашите активни разрешителни за риболов:</p>
 
         <div class="dashboard-grid">
             {% if tickets %}
                 {% for ticket in tickets %}
                 <article class="saved-ticket">
                     <div style="font-weight: bold; border-bottom: 2px dashed rgba(255,255,255,0.5); padding-bottom: 10px; margin-bottom: 10px;">
-                        🎟️ Official IARA Permit
+                        🎟️ Официално разрешително ИАРА
                     </div>
-                    <div><strong>Permit ID:</strong> {{ ticket.permit_id }}</div>
-                    <div><strong>Paid:</strong> {{ '%.2f'|format(ticket.price) }} €</div>
-                    <div><strong>Issued:</strong> {{ ticket.purchase_date.strftime('%Y-%m-%d') }}</div>
+                    <div><strong>Номер:</strong> {{ ticket.permit_id }}</div>
+                    <div><strong>Платено:</strong> {{ '%.2f'|format(ticket.price) }} €</div>
+                    <div><strong>Издадено на:</strong> {{ ticket.purchase_date.strftime('%Y-%m-%d') }}</div>
                 </article>
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
-                    You do not have active permits yet. Purchase your first one from
-                    <a href="{{ url_for('ticket') }}">Fishing Ticket</a>.
+                    Все още нямате активни разрешителни. Закупете първото си от
+                    <a href="{{ url_for('ticket') }}">Риболовен билет</a>.
                 </div>
             {% endif %}
         </div>
 
-        <!-- Контейнер за графиката -->
         {% if catch_data %}
         <div class="chart-container" style="margin-top: 40px; width: 100%; max-width: 800px;">
-            <h2 style="color: #328cc1; text-align: center;">Lifetime Catch Statistics (kg)</h2>
+            <h2 style="color: #328cc1; text-align: center;">Статистика на улова за всички времена (кг)</h2>
             <canvas id="catchChart"></canvas>
         </div>
         {% endif %}
@@ -106,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Total Catch (kg)',
+                            label: 'Общ улов (кг)',
                             data: data,
                             backgroundColor: ['rgba(46, 204, 113, 0.7)', 'rgba(52, 152, 219, 0.7)', 'rgba(241, 196, 15, 0.7)'],
                             borderColor: ['rgba(46, 204, 113, 1)', 'rgba(52, 152, 219, 1)', 'rgba(241, 196, 15, 1)'],

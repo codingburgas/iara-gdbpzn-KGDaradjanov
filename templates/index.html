@@ -1,47 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iara</title>
+    <title>ИАРА - Изпълнителна агенция</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
+    <div class="gov-top-bar">
+        <span>Република България | Официален правителствен портал</span>
+    </div>
+
     <nav class="navbar">
-        <div class="logo">IARA</div>
+        <div class="logo">ИАРА</div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('index') }}">Начало</a></li>
 
             {% if session.get('user_id') %}
-                <li><a href="{{ url_for('dashboard') }}">My Dashboard</a></li>
-                <li><a href="{{ url_for('vessels') }}">Vessel Registry</a></li>
-                <li><a href="{{ url_for('logbook') }}">E-Logbook</a></li>
-                <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
+                <li><a href="{{ url_for('dashboard') }}">Моето табло</a></li>
+                <li><a href="{{ url_for('vessels') }}">Регистър кораби</a></li>
+                <li><a href="{{ url_for('logbook') }}">Е-Дневник</a></li>
+                <li><a href="{{ url_for('trace') }}" class="text-green">Проследи улов</a></li>
 
                 {% if session.get('role') == 'Inspector' %}
-                    <li><a href="{{ url_for('inspector_dashboard') }}" style="color: #f1c40f;">Inspector Panel</a></li>
+                    <li><a href="{{ url_for('inspector_dashboard') }}" class="text-yellow">Инспекторски панел</a></li>
                 {% endif %}
 
                 {% if session.get('role') == 'Admin' %}
-                    <li><a href="{{ url_for('admin_dashboard') }}" style="color: #e74c3c; font-weight: bold;">Admin Panel</a></li>
+                    <li><a href="{{ url_for('admin_dashboard') }}" class="text-red">Админ панел</a></li>
                 {% endif %}
 
-                <li><a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a></li>
+                <li><a href="{{ url_for('logout') }}">Изход ({{ session['username'] }})</a></li>
             {% else %}
-                <li><a href="{{ url_for('login') }}">Login</a></li>
-                <li><a href="{{ url_for('ticket') }}">Fishing Ticket</a></li>
-                <li><a href="{{ url_for('trace') }}" style="color: #2ecc71;">Trace Catch</a></li>
+                <li><a href="{{ url_for('login') }}">Вход</a></li>
+                <li><a href="{{ url_for('ticket') }}">Риболовен билет</a></li>
+                <li><a href="{{ url_for('trace') }}" class="text-green">Проследи улов</a></li>
             {% endif %}
 
             <li><button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button></li>
         </ul>
     </nav>
 
-    <main>
-        <section class="home">
-            <h1>Welcome to IARA</h1>
-            <p>Fishing management system</p>
+    <main class="index-main">
+
+        <section class="index-hero">
+            <div class="hero-wrapper">
+                <h1>Изпълнителна агенция по рибарство и аквакултури</h1>
+                <p>Информационна система за контрол, проследяемост и управление на ресурсите</p>
+            </div>
+        </section>
+
+        <section class="index-grid">
+
+            <div class="news-column">
+                <h2 class="section-heading">📰 Последни заповеди и забрани</h2>
+
+                <div class="news-item">
+                    <span class="badge danger-badge">Заповед № РД 09-123 / 2026</span>
+                    <h3>Ежегодна забрана за пролетно-лятно размножаващите се риби</h3>
+                    <p>Риболовът е строго забранен във вътрешните водни басейни на страната с цел опазване на рибните популации през размножителния период.</p>
+                </div>
+
+                <div class="news-item">
+                    <span class="badge warning-badge">Уведомление</span>
+                    <h3>Активиране на новата система "Електронен дневник"</h3>
+                    <p>Всички оператори на кораби за стопански риболов вече трябва да подават своите декларации за улов изключително чрез новия модул Е-Дневник в рамките на 24 часа след разтоварване.</p>
+                </div>
+            </div>
+
+            <div class="services-column">
+                <h2 class="section-heading">💻 Електронни услуги</h2>
+
+                <a href="{{ url_for('ticket') }}" class="service-card border-green">
+                    <h3>🎣 Издаване на риболовен билет</h3>
+                    <span>Издайте своето разрешително за любителски риболов онлайн.</span>
+                </a>
+
+                <a href="{{ url_for('trace') }}" class="service-card border-blue">
+                    <h3>🔍 Проследяване произхода на улова</h3>
+                    <span>Проверете партидите с улов в публичния регистър.</span>
+                </a>
+
+                {% if session.get('user_id') %}
+                <a href="{{ url_for('vessels') }}" class="service-card border-yellow">
+                    <h3>🚢 Търговски флот</h3>
+                    <span>Управлявайте вашите кораби и лицензи за стопански риболов.</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="login-cta">
+                    Вход в портала (е-Автентикация)
+                </a>
+                {% endif %}
+            </div>
+
         </section>
     </main>
 

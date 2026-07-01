@@ -1,41 +1,37 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import random
 import csv
 from io import StringIO
 from flask import Response
 from reportlab.pdfgen import canvas
-from flask import make_response
 from io import BytesIO
 import requests
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
+
+
 def get_weather():
     api_key = os.getenv("WEATHER_API_KEY")
     city = "Burgas"
-
-    url = (
-        f"https://api.openweathermap.org/data/2.5/weather"
-        f"?q={city}&appid={api_key}&units=metric"
-    )
-
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     try:
         response = requests.get(url, timeout=5)
         response.raise_for_status()
-
         data = response.json()
-
         return {
             "temp": round(data["main"]["temp"]),
             "desc": data["weather"][0]["description"]
         }
-
     except Exception as e:
         print("Weather Error:", e)
         return None
+
+
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_later'
 
@@ -53,6 +49,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='Fisherman')
     tickets = db.relationship('Ticket', backref='owner', lazy=True)
+    catch_logs = db.relationship('CatchLog', backref='owner', lazy=True)
 
 
 class Ticket(db.Model):
@@ -70,8 +67,18 @@ class Vessel(db.Model):
     registration_number = db.Column(db.String(20), unique=True, nullable=False)
     tonnage = db.Column(db.Float, nullable=False)
     engine_power = db.Column(db.Float, nullable=False)
+
+    # Нови полета според заданието
+    captain_name = db.Column(db.String(100), nullable=False)
+    length = db.Column(db.Float, nullable=False)
+    width = db.Column(db.Float, nullable=False)
+    draft = db.Column(db.Float, nullable=False)
+    fuel_type = db.Column(db.String(50), nullable=False)
+    international_number = db.Column(db.String(50))
+
     status = db.Column(db.String(20), default='Active')
     permit = db.relationship('CommercialPermit', backref='vessel', uselist=False, cascade="all, delete-orphan")
+    catch_logs = db.relationship('CatchLog', backref='vessel', lazy=True)
 
 
 class CommercialPermit(db.Model):
@@ -79,6 +86,8 @@ class CommercialPermit(db.Model):
     vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), unique=True, nullable=False)
     permit_number = db.Column(db.String(20), unique=True, nullable=False)
     issue_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expiry_date = db.Column(db.DateTime, nullable=False)  # Срок на валидност
+    is_revoked = db.Column(db.Boolean, default=False)  # Флаг за отнемане при нарушение
 
 
 class Fine(db.Model):
@@ -92,7 +101,8 @@ class Fine(db.Model):
 
 class CatchLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Връзка с потребителя (за любители)
+    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), nullable=True)  # Може да е празно за любители
     catch_date = db.Column(db.String(20), nullable=False)
     gear_used = db.Column(db.String(50), nullable=False)
     fish_species = db.Column(db.String(50), nullable=False)
@@ -157,33 +167,25 @@ def logout():
 @app.route('/ticket')
 def ticket():
     if 'user_id' not in session:
-        flash('Please log in to purchase a fishing permit.')
+        flash('Моля влезте в профила си, за да купите билет.')
         return redirect(url_for('login'))
     return render_template('ticket.html')
 
 
-# НОВО: Обновен маршрут за Dashboard с извличане на данните за графиката
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
-        flash('Please log in to view your dashboard.')
         return redirect(url_for('login'))
 
     user_id = session['user_id']
     user_tickets = Ticket.query.filter_by(user_id=user_id).order_by(Ticket.purchase_date.desc()).all()
 
-    # Взимаме всички кораби на текущия потребител
-    user_vessels = Vessel.query.filter_by(user_id=user_id).all()
-    vessel_ids = [v.id for v in user_vessels]
-
-    # Подготвяме речник, в който ще сумираме рибата по вид
+    # Опростено зареждане на данните за графиката (вече работи и за любители)
+    logs = CatchLog.query.filter_by(user_id=user_id).all()
     catch_data = {}
-    if vessel_ids:
-        # Взимаме всички записи за тези кораби
-        logs = CatchLog.query.filter(CatchLog.vessel_id.in_(vessel_ids)).all()
-        for log in logs:
-            species = log.fish_species.capitalize()
-            catch_data[species] = catch_data.get(species, 0) + log.quantity_kg
+    for log in logs:
+        species = log.fish_species.capitalize()
+        catch_data[species] = catch_data.get(species, 0) + log.quantity_kg
 
     return render_template('dashboard.html', tickets=user_tickets, catch_data=catch_data)
 
@@ -206,15 +208,13 @@ def calculate_price():
 @app.route('/buy', methods=['POST'])
 def buy_ticket():
     if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+        return jsonify({'status': 'error'}), 401
     payload = request.get_json(silent=True) or {}
     try:
         price = float(payload.get('price', 0))
     except (TypeError, ValueError):
-        return jsonify({'status': 'error', 'message': 'Invalid price'}), 400
+        return jsonify({'status': 'error'}), 400
     permit_id = f"IARA-{random.randint(100000, 999999)}"
-    while Ticket.query.filter_by(permit_id=permit_id).first():
-        permit_id = f"IARA-{random.randint(100000, 999999)}"
     new_ticket = Ticket(
         user_id=session['user_id'],
         permit_id=permit_id,
@@ -229,22 +229,19 @@ def buy_ticket():
 @app.route('/inspector', methods=['GET', 'POST'])
 def inspector_dashboard():
     if session.get('role') != 'Inspector':
-        flash('Access Denied: Official IARA Inspectors only.')
         return redirect(url_for('dashboard'))
     search_result = None
     searched = False
     if request.method == 'POST':
-        if 'permit_id' in request.form:
-            searched = True
-            search_query = request.form.get('permit_id', '').strip()
-            search_result = Ticket.query.filter_by(permit_id=search_query).first()
+        searched = True
+        search_query = request.form.get('permit_id', '').strip()
+        search_result = Ticket.query.filter_by(permit_id=search_query).first()
     return render_template('inspector.html', ticket=search_result, searched=searched)
 
 
 @app.route('/issue_fine', methods=['POST'])
 def issue_fine():
     if session.get('role') != 'Inspector':
-        flash('Access Denied: Only Inspectors can issue fines.')
         return redirect(url_for('dashboard'))
     offender_name = request.form.get('offender_name', '').strip()
     description = request.form.get('description', '').strip()
@@ -258,34 +255,27 @@ def issue_fine():
         )
         db.session.add(new_fine)
         db.session.commit()
-        flash(f'Penalty of {amount_val} € successfully issued to {offender_name}!')
+        flash(f'Глоба от {amount_val} € е издадена на {offender_name}!')
     return redirect(url_for('inspector_dashboard'))
 
 
 @app.route('/admin')
 def admin_dashboard():
     if session.get('role') != 'Admin':
-        flash('Access Denied: Administrators only.')
         return redirect(url_for('dashboard'))
-
     all_users = User.query.all()
     total_users = User.query.count()
     total_vessels = Vessel.query.count()
     total_fines = db.session.query(db.func.sum(Fine.amount)).scalar() or 0.0
     total_catch = db.session.query(db.func.sum(CatchLog.quantity_kg)).scalar() or 0.0
-
-    return render_template('admin.html',
-                           users=all_users,
-                           total_users=total_users,
-                           total_vessels=total_vessels,
-                           total_fines=round(total_fines, 2),
+    return render_template('admin.html', users=all_users, total_users=total_users,
+                           total_vessels=total_vessels, total_fines=round(total_fines, 2),
                            total_catch=round(total_catch, 2))
 
 
 @app.route('/change_role', methods=['POST'])
 def change_role():
     if session.get('role') != 'Admin':
-        flash('Access Denied: Administrators only.')
         return redirect(url_for('dashboard'))
     user_id = request.form.get('user_id')
     new_role = request.form.get('new_role')
@@ -295,15 +285,14 @@ def change_role():
         db.session.commit()
         if user.id == session.get('user_id'):
             session['role'] = new_role
-        flash(f'Role for user {user.username} successfully changed to {new_role}!')
     return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/logbook', methods=['GET', 'POST'])
 def logbook():
     if 'user_id' not in session:
-        flash('Please log in to access the logbook.')
         return redirect(url_for('login'))
+
     user_vessels = Vessel.query.filter_by(user_id=session['user_id']).all()
 
     if request.method == 'POST':
@@ -313,48 +302,45 @@ def logbook():
         species = request.form.get('species')
         qty = request.form.get('quantity')
 
-        if vessel_id and catch_date and gear and species and qty:
-            try:
-                qty_float = float(qty)
-            except ValueError:
-                flash("Invalid quantity.")
-                return redirect(url_for("logbook"))
-            protected_species = ['есетра', 'делфин', 'морска котка', 'тюлен', 'sturgeon', 'dolphin']
-            if species.lower() in protected_species:
-                flash(
-                    f'🚨 ALARM: Fishing for {species.capitalize()} is strictly prohibited! The attempt has been blocked.',
-                    'error')
+        # Проверка за любителски улов (ако не е избран кораб)
+        v_id = None
+        if not vessel_id:
+            user_tickets = Ticket.query.filter_by(user_id=session['user_id']).all()
+            if not user_tickets:
+                flash('Трябва ви активен риболовен билет, за да регистрирате любителски улов!', 'error')
                 return redirect(url_for('logbook'))
+        else:
+            v_id = int(vessel_id)
 
-            if qty_float > 5000:
-                flash('🚨 ERROR: Quantity exceeds the daily limit of 5000 kg. Contact IARA for special verification.',
-                      'error')
-                return redirect(url_for('logbook'))
+        try:
+            qty_float = float(qty)
+        except ValueError:
+            return redirect(url_for("logbook"))
 
-            lot_num = f"LOT-{random.randint(1000000, 9999999)}"
-            while CatchLog.query.filter_by(lot_number=lot_num).first():
-                lot_num = f"LOT-{random.randint(1000000, 9999999)}"
-
-            new_log = CatchLog(
-                vessel_id=int(vessel_id),
-                catch_date=catch_date,
-                gear_used=gear,
-                fish_species=species,
-                quantity_kg=qty_float,
-                lot_number=lot_num,
-                lat=request.form.get('lat'),
-                lon=request.form.get('lon')
-            )
-            db.session.add(new_log)
-            db.session.commit()
-            flash(f'Catch successfully logged! Traceability Number: {lot_num}')
+        protected_species = ['есетра', 'делфин', 'морска котка', 'тюлен']
+        if species.lower() in protected_species:
+            flash(f'🚨 АЛАРМА: Уловът на {species.capitalize()} е забранен!', 'error')
             return redirect(url_for('logbook'))
 
-    vessel_ids = [v.id for v in user_vessels]
-    if vessel_ids:
-        logs = CatchLog.query.filter(CatchLog.vessel_id.in_(vessel_ids)).order_by(CatchLog.id.desc()).all()
-    else:
-        logs = []
+        lot_num = f"LOT-{random.randint(1000000, 9999999)}"
+        new_log = CatchLog(
+            user_id=session['user_id'],
+            vessel_id=v_id,
+            catch_date=catch_date,
+            gear_used=gear,
+            fish_species=species,
+            quantity_kg=qty_float,
+            lot_number=lot_num,
+            lat=request.form.get('lat'),
+            lon=request.form.get('lon')
+        )
+        db.session.add(new_log)
+        db.session.commit()
+        flash(f'Уловът е записан! Партиден номер: {lot_num}')
+        return redirect(url_for('logbook'))
+
+    # Извеждаме всички записи на този потребител (и любителски, и търговски)
+    logs = CatchLog.query.filter_by(user_id=session['user_id']).order_by(CatchLog.id.desc()).all()
     return render_template('logbook.html', vessels=user_vessels, logs=logs)
 
 
@@ -367,7 +353,7 @@ def trace():
         searched = True
         lot_query = request.form.get('lot_number', '').strip()
         search_result = CatchLog.query.filter_by(lot_number=lot_query).first()
-        if search_result:
+        if search_result and search_result.vessel_id:
             vessel = Vessel.query.get(search_result.vessel_id)
     return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
@@ -375,128 +361,119 @@ def trace():
 @app.route('/vessels', methods=['GET'])
 def vessels():
     if 'user_id' not in session:
-        flash('Please log in to manage vessels.')
         return redirect(url_for('login'))
-
     search_query = request.args.get('search', '').strip()
-    # Извикваме времето
     weather = get_weather()
 
     if search_query:
         all_vessels = Vessel.query.filter(
-            (Vessel.name.ilike(f'%{search_query}%')) |
-            (Vessel.registration_number.ilike(f'%{search_query}%'))
+            (Vessel.name.ilike(f'%{search_query}%')) | (Vessel.registration_number.ilike(f'%{search_query}%'))
         ).order_by(Vessel.id.desc()).all()
     else:
         all_vessels = Vessel.query.order_by(Vessel.id.desc()).all()
 
-    # Добавяме weather=weather тук
     return render_template('vessels.html', vessels=all_vessels, search_query=search_query, weather=weather)
-
-
-@app.route('/export_vessels')
-def export_vessels():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    vessels_list = Vessel.query.order_by(Vessel.id.desc()).all()
-
-    def generate():
-        data = StringIO()
-        writer = csv.writer(data)
-        writer.writerow(
-            ['ID', 'Vessel Name', 'Registration Number', 'Tonnage (t)', 'Engine Power (kW)', 'Commercial Permit'])
-        yield data.getvalue()
-        data.seek(0)
-        data.truncate(0)
-
-        for v in vessels_list:
-            permit_num = v.permit.permit_number if v.permit else "No Permit"
-            writer.writerow([v.id, v.name, v.registration_number, v.tonnage, v.engine_power, permit_num])
-            yield data.getvalue()
-            data.seek(0)
-            data.truncate(0)
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition", "attachment", filename="iara_vessel_registry.csv")
-    return response
 
 
 @app.route('/register_vessel', methods=['POST'])
 def register_vessel():
-    if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+    if 'user_id' not in session: return redirect(url_for('login'))
+
     name = request.form.get('name', '').strip()
     reg_num = request.form.get('reg_num', '').strip()
-    tonnage_val = request.form.get('tonnage', '0')
-    power_val = request.form.get('power', '0')
-    if not name or not reg_num:
-        flash('Vessel name and registration number are required.')
-        return redirect(url_for('vessels'))
-    if Vessel.query.filter_by(registration_number=reg_num).first():
-        flash('A vessel with this registration number already exists.')
-        return redirect(url_for('vessels'))
+
     new_vessel = Vessel(
         user_id=session['user_id'],
         name=name,
         registration_number=reg_num,
-        tonnage=float(tonnage_val),
-        engine_power=float(power_val)
+        captain_name=request.form.get('captain_name', ''),
+        international_number=request.form.get('international_number', ''),
+        tonnage=float(request.form.get('tonnage', '0')),
+        engine_power=float(request.form.get('power', '0')),
+        fuel_type=request.form.get('fuel_type', ''),
+        length=float(request.form.get('length', '0')),
+        width=float(request.form.get('width', '0')),
+        draft=float(request.form.get('draft', '0'))
     )
     db.session.add(new_vessel)
     db.session.commit()
-    flash('Vessel registered successfully.')
+    flash('Корабът е регистриран успешно.')
     return redirect(url_for('vessels'))
 
 
 @app.route('/issue_commercial_permit/<int:vessel_id>', methods=['POST'])
 def issue_commercial_permit(vessel_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login'))
     vessel = Vessel.query.get_or_404(vessel_id)
-    if vessel.user_id != session['user_id']:
-        flash('Access Denied: You do not own this vessel.')
-        return redirect(url_for('vessels'))
-    if vessel.permit:
-        flash('This vessel already has an active commercial permit.')
-        return redirect(url_for('vessels'))
+    if vessel.user_id != session['user_id']: return redirect(url_for('vessels'))
+
     permit_num = f"COM-{random.randint(10000, 99999)}"
-    new_permit = CommercialPermit(vessel_id=vessel.id, permit_number=permit_num)
+    new_permit = CommercialPermit(
+        vessel_id=vessel.id,
+        permit_number=permit_num,
+        expiry_date=datetime.now(timezone.utc) + timedelta(days=365)  # Валидно 1 година
+    )
     db.session.add(new_permit)
     db.session.commit()
-    flash(f'Commercial Permit {permit_num} successfully issued for {vessel.name}!')
+    flash(f'Стопанско разрешително {permit_num} е издадено!')
+    return redirect(url_for('vessels'))
+
+
+@app.route('/revoke_permit/<int:permit_id>', methods=['POST'])
+def revoke_permit(permit_id):
+    if session.get('role') not in ['Inspector', 'Admin']:
+        flash('Достъп отказан: Само инспектори могат да отнемат разрешителни.')
+        return redirect(url_for('vessels'))
+
+    permit = CommercialPermit.query.get_or_404(permit_id)
+    permit.is_revoked = True
+    db.session.commit()
+    flash(f'Разрешително {permit.permit_number} беше отнето поради нарушение!')
     return redirect(url_for('vessels'))
 
 
 @app.route('/export_pdf')
 def export_pdf():
     if 'user_id' not in session: return redirect(url_for('login'))
-
-    # 1. Създаваме буфер в паметта
     buffer = BytesIO()
     p = canvas.Canvas(buffer)
-
-    # 2. Пишем в PDF-а
     p.drawString(100, 800, "IARA OFFICIAL CATCH REPORT")
     y = 750
-    logs = CatchLog.query.all()
-    for log in logs:
+    for log in CatchLog.query.filter_by(user_id=session['user_id']).all():
         p.drawString(100, y, f"Species: {log.fish_species} | Qty: {log.quantity_kg}kg | Date: {log.catch_date}")
         y -= 20
-        if y < 50:  # Страницата свърши
+        if y < 50:
             p.showPage()
             y = 800
-
     p.showPage()
     p.save()
-
-    # 3. Връщаме съдържанието на буфера като PDF файл
     pdf_out = buffer.getvalue()
     buffer.close()
+    return Response(pdf_out, mimetype='application/pdf',
+                    headers={'Content-Disposition': 'attachment; filename=report.pdf'})
 
-    response = Response(pdf_out, mimetype='application/pdf')
-    response.headers['Content-Disposition'] = 'attachment; filename=catch_report.pdf'
-    return response
+
+@app.route('/export_vessels')
+def export_vessels():
+    if 'user_id' not in session: return redirect(url_for('login'))
+
+    def generate():
+        data = StringIO()
+        writer = csv.writer(data)
+        writer.writerow(['ID', 'Vessel Name', 'Reg Number', 'Tonnage', 'Power', 'Permit'])
+        yield data.getvalue()
+        data.seek(0);
+        data.truncate(0)
+        for v in Vessel.query.all():
+            permit_num = v.permit.permit_number if (v.permit and not v.permit.is_revoked) else "No Permit"
+            writer.writerow([v.id, v.name, v.registration_number, v.tonnage, v.engine_power, permit_num])
+            yield data.getvalue()
+            data.seek(0);
+            data.truncate(0)
+
+    return Response(generate(), mimetype='text/csv',
+                    headers={"Content-Disposition": "attachment; filename=vessels.csv"})
+
 
 if __name__ == '__main__':
     app.run()
