@@ -3,6 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 import random
+import csv
+from io import StringIO
+from flask import Response
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_later'
@@ -211,7 +214,6 @@ def issue_fine():
     return redirect(url_for('inspector_dashboard'))
 
 
-# НОВО: ADMIN PANEL с добавени KPIs
 @app.route('/admin')
 def admin_dashboard():
     if session.get('role') != 'Admin':
@@ -219,12 +221,8 @@ def admin_dashboard():
         return redirect(url_for('dashboard'))
 
     all_users = User.query.all()
-
-    # 1. Изчисляваме статистиките директно от базата данни
     total_users = User.query.count()
     total_vessels = Vessel.query.count()
-
-    # Използваме db.func.sum за събиране на всички глоби и уловена риба
     total_fines = db.session.query(db.func.sum(Fine.amount)).scalar() or 0.0
     total_catch = db.session.query(db.func.sum(CatchLog.quantity_kg)).scalar() or 0.0
 
@@ -253,7 +251,6 @@ def change_role():
     return redirect(url_for('admin_dashboard'))
 
 
-# НОВО: LOGBOOK със защита срещу бракониери
 @app.route('/logbook', methods=['GET', 'POST'])
 def logbook():
     if 'user_id' not in session:
@@ -270,8 +267,6 @@ def logbook():
 
         if vessel_id and catch_date and gear and species and qty:
             qty_float = float(qty)
-
-            # ЗАЩИТА 1: Забранени видове
             protected_species = ['есетра', 'делфин', 'морска котка', 'тюлен', 'sturgeon', 'dolphin']
             if species.lower() in protected_species:
                 flash(
@@ -279,7 +274,6 @@ def logbook():
                     'error')
                 return redirect(url_for('logbook'))
 
-            # ЗАЩИТА 2: Нереалистичен лимит
             if qty_float > 5000:
                 flash('🚨 ERROR: Quantity exceeds the daily limit of 5000 kg. Contact IARA for special verification.',
                       'error')
@@ -324,13 +318,51 @@ def trace():
     return render_template('trace.html', log=search_result, vessel=vessel, searched=searched)
 
 
-@app.route('/vessels')
+# --- VESSELS & COMMERCIAL PERMITS ---
+@app.route('/vessels', methods=['GET'])
 def vessels():
     if 'user_id' not in session:
         flash('Please log in to manage vessels.')
         return redirect(url_for('login'))
-    all_vessels = Vessel.query.order_by(Vessel.id.desc()).all()
-    return render_template('vessels.html', vessels=all_vessels)
+
+    search_query = request.args.get('search', '').strip()
+
+    if search_query:
+        all_vessels = Vessel.query.filter(
+            (Vessel.name.ilike(f'%{search_query}%')) |
+            (Vessel.registration_number.ilike(f'%{search_query}%'))
+        ).order_by(Vessel.id.desc()).all()
+    else:
+        all_vessels = Vessel.query.order_by(Vessel.id.desc()).all()
+
+    return render_template('vessels.html', vessels=all_vessels, search_query=search_query)
+
+
+@app.route('/export_vessels')
+def export_vessels():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    vessels_list = Vessel.query.order_by(Vessel.id.desc()).all()
+
+    def generate():
+        data = StringIO()
+        writer = csv.writer(data)
+        writer.writerow(['ID', 'Vessel Name', 'Registration Number', 'Tonnage (t)', 'Engine Power (kW)', 'Commercial Permit'])
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+
+        for v in vessels_list:
+            permit_num = v.permit.permit_number if v.permit else "No Permit"
+            writer.writerow([v.id, v.name, v.registration_number, v.tonnage, v.engine_power, permit_num])
+            yield data.getvalue()
+            data.seek(0)
+            data.truncate(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename="iara_vessel_registry.csv")
+    return response
 
 
 @app.route('/register_vessel', methods=['POST'])
