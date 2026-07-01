@@ -10,18 +10,31 @@ from reportlab.pdfgen import canvas
 from flask import make_response
 from io import BytesIO
 import requests
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 def get_weather():
-    api_key = "710fe10c3f6d5c8342fb935b440f14ce"
+    api_key = os.getenv("WEATHER_API_KEY")
     city = "Burgas"
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+
+    url = (
+        f"https://api.openweathermap.org/data/2.5/weather"
+        f"?q={city}&appid={api_key}&units=metric"
+    )
+
     try:
-        response = requests.get(url).json()
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+
+        data = response.json()
+
         return {
-            "temp": round(response["main"]["temp"]),
-            "desc": response["weather"][0]["description"]
+            "temp": round(data["main"]["temp"]),
+            "desc": data["weather"][0]["description"]
         }
-    except:
+
+    except Exception as e:
+        print("Weather Error:", e)
         return None
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_later'
@@ -276,7 +289,7 @@ def change_role():
         return redirect(url_for('dashboard'))
     user_id = request.form.get('user_id')
     new_role = request.form.get('new_role')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user and new_role in ['Fisherman', 'Inspector', 'Admin']:
         user.role = new_role
         db.session.commit()
@@ -301,7 +314,11 @@ def logbook():
         qty = request.form.get('quantity')
 
         if vessel_id and catch_date and gear and species and qty:
-            qty_float = float(qty)
+            try:
+                qty_float = float(qty)
+            except ValueError:
+                flash("Invalid quantity.")
+                return redirect(url_for("logbook"))
             protected_species = ['есетра', 'делфин', 'морска котка', 'тюлен', 'sturgeon', 'dolphin']
             if species.lower() in protected_species:
                 flash(
@@ -482,4 +499,4 @@ def export_pdf():
     return response
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
