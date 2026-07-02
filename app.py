@@ -68,7 +68,6 @@ class Vessel(db.Model):
     tonnage = db.Column(db.Float, nullable=False)
     engine_power = db.Column(db.Float, nullable=False)
 
-    # Нови полета според заданието
     captain_name = db.Column(db.String(100), nullable=False)
     length = db.Column(db.Float, nullable=False)
     width = db.Column(db.Float, nullable=False)
@@ -86,8 +85,8 @@ class CommercialPermit(db.Model):
     vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), unique=True, nullable=False)
     permit_number = db.Column(db.String(20), unique=True, nullable=False)
     issue_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    expiry_date = db.Column(db.DateTime, nullable=False)  # Срок на валидност
-    is_revoked = db.Column(db.Boolean, default=False)  # Флаг за отнемане при нарушение
+    expiry_date = db.Column(db.DateTime, nullable=False)  # time that is valid
+    is_revoked = db.Column(db.Boolean, default=False)  # revoke permit
 
 
 class Fine(db.Model):
@@ -101,8 +100,8 @@ class Fine(db.Model):
 
 class CatchLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Връзка с потребителя (за любители)
-    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), nullable=True)  # Може да е празно за любители
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    vessel_id = db.Column(db.Integer, db.ForeignKey('vessel.id'), nullable=True)
     catch_date = db.Column(db.String(20), nullable=False)
     gear_used = db.Column(db.String(50), nullable=False)
     fish_species = db.Column(db.String(50), nullable=False)
@@ -180,7 +179,6 @@ def dashboard():
     user_id = session['user_id']
     user_tickets = Ticket.query.filter_by(user_id=user_id).order_by(Ticket.purchase_date.desc()).all()
 
-    # Опростено зареждане на данните за графиката (вече работи и за любители)
     logs = CatchLog.query.filter_by(user_id=user_id).all()
     catch_data = {}
     for log in logs:
@@ -302,7 +300,6 @@ def logbook():
         species = request.form.get('species')
         qty = request.form.get('quantity')
 
-        # Проверка за любителски улов (ако не е избран кораб)
         v_id = None
         if not vessel_id:
             user_tickets = Ticket.query.filter_by(user_id=session['user_id']).all()
@@ -339,7 +336,6 @@ def logbook():
         flash(f'Уловът е записан! Партиден номер: {lot_num}')
         return redirect(url_for('logbook'))
 
-    # Извеждаме всички записи на този потребител (и любителски, и търговски)
     logs = CatchLog.query.filter_by(user_id=session['user_id']).order_by(CatchLog.id.desc()).all()
     return render_template('logbook.html', vessels=user_vessels, logs=logs)
 
@@ -411,7 +407,7 @@ def issue_commercial_permit(vessel_id):
     new_permit = CommercialPermit(
         vessel_id=vessel.id,
         permit_number=permit_num,
-        expiry_date=datetime.now(timezone.utc) + timedelta(days=365)  # Валидно 1 година
+        expiry_date=datetime.now(timezone.utc) + timedelta(days=365)
     )
     db.session.add(new_permit)
     db.session.commit()

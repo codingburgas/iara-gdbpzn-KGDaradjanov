@@ -1,7 +1,6 @@
 from app import app, db, User
 
 with app.app_context():
-    # Взимаме първия регистриран потребител (т.е. твоя акаунт)
     user = User.query.first()
 
     if user:

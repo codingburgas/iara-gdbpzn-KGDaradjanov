@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (themeToggle) themeToggle.textContent = '☀️';
     }
 
-    // Добавяме събитие при кликване върху бутона
+    // Add event when clicked
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
             body.classList.toggle('dark-mode');
